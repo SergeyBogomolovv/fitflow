@@ -1,4 +1,4 @@
-package models
+package admin
 
 type Admin struct {
 	Login    string `db:"login"`
