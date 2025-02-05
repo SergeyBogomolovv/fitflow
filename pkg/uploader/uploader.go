@@ -12,13 +12,18 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+type Uploader interface {
+	Upload(ctx context.Context, key string, body io.Reader) (string, error)
+	Delete(ctx context.Context, key string) error
+}
+
 type uploader struct {
 	manager *manager.Uploader
 	client  *s3.Client
 	bucket  string
 }
 
-func New(AccessKey, SecretKey, Region, Endpoint, Bucket string) *uploader {
+func MustNew(AccessKey, SecretKey, Region, Endpoint, Bucket string) Uploader {
 	config, err := config.LoadDefaultConfig(context.Background(),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(AccessKey, SecretKey, "")),
 		config.WithRegion(Region),
