@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS admins 
+(
+	login VARCHAR(25) PRIMARY KEY,
+	password BYTEA NOT NULL
+);

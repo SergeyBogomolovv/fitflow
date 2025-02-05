@@ -1,0 +1,10 @@
+CREATE TABLE posts
+(
+	post_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	content TEXT NOT NULL,
+	audience user_lvl NOT NULL DEFAULT 'default',
+	images TEXT[] DEFAULT '{}',
+	created_at TIMESTAMP DEFAULT NOW(),
+	scheduled_at TIMESTAMP NOT NULL,
+	posted BOOLEAN NOT NULL DEFAULT FALSE
+);
