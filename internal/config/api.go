@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/SergeyBogomolovv/fitflow/pkg/env"
+	"github.com/joho/godotenv"
 )
 
 type ApiConfig struct {
@@ -17,6 +18,7 @@ type ApiConfig struct {
 }
 
 func NewApiConfig() *ApiConfig {
+	godotenv.Load()
 	return &ApiConfig{
 		Addr:           env.MustLoad("ADDR"),
 		AllowedOrigins: []string{"http://localhost:3000"}, // TODO: load from env

@@ -12,6 +12,9 @@ migrate-down:
 	@name=$(name);
 	@migrate -path=$(MIGRATIONS_PATH) -database=$(POSTGRES_URL) down $(name)
 
+run-cli:
+	@go run cmd/cli/main.go
+
 run-api:
 	@go run cmd/api/main.go
 
