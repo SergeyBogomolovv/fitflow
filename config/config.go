@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
-	"github.com/joho/godotenv"
 )
 
 type (
@@ -42,7 +41,6 @@ type (
 )
 
 func MustNewConfig(path string) *Config {
-	godotenv.Load()
 	cfg := new(Config)
 
 	if err := cleanenv.ReadConfig(path, cfg); err != nil {

@@ -13,6 +13,7 @@ import (
 	adminSvc "github.com/SergeyBogomolovv/fitflow/internal/service/admin"
 	"github.com/SergeyBogomolovv/fitflow/pkg/db"
 	"github.com/SergeyBogomolovv/fitflow/pkg/logger"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -29,4 +30,8 @@ func main() {
 	defer stop()
 
 	app.Run(ctx)
+}
+
+func init() {
+	godotenv.Load()
 }

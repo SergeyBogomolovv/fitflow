@@ -8,13 +8,19 @@ import (
 	"os"
 
 	"github.com/SergeyBogomolovv/fitflow/config"
+	_ "github.com/SergeyBogomolovv/fitflow/docs"
 	authHandler "github.com/SergeyBogomolovv/fitflow/internal/delivery/http/auth"
 	adminRepo "github.com/SergeyBogomolovv/fitflow/internal/repo/admin"
 	authSvc "github.com/SergeyBogomolovv/fitflow/internal/service/auth"
 	"github.com/SergeyBogomolovv/fitflow/pkg/db"
 	"github.com/SergeyBogomolovv/fitflow/pkg/logger"
+	"github.com/joho/godotenv"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
+// @title FitFlow API
+// @version 0.0.1
+// @description Описание API для сервиса FitFlow
 func main() {
 	conf := config.MustNewConfig("./config/config.yml")
 	db := db.MustNew(conf.PG.URL)
@@ -27,6 +33,7 @@ func main() {
 	authHandler := authHandler.New(logger, authSvc)
 
 	router := http.NewServeMux()
+	router.Handle("/api/docs/", httpSwagger.WrapHandler)
 	authHandler.Handle(router)
 
 	srv := &http.Server{
@@ -38,4 +45,8 @@ func main() {
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("failed to start server: %s", err)
 	}
+}
+
+func init() {
+	godotenv.Load()
 }

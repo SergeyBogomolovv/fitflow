@@ -1,0 +1,71 @@
+definitions:
+  auth.LoginRequest:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  auth.LoginResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  httpx.Response:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      status:
+        $ref: '#/definitions/httpx.Status'
+    type: object
+  httpx.Status:
+    enum:
+    - success
+    - error
+    type: string
+    x-enum-varnames:
+    - StatusSuccess
+    - StatusError
+info:
+  contact: {}
+  description: Описание API для сервиса FitFlow
+  title: FitFlow API
+  version: 0.0.1
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Учетные записи администратора создаются через cli утилиту
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.LoginResponse'
+        "400":
+          description: Неверный формат данных
+          schema:
+            $ref: '#/definitions/httpx.Response'
+        "401":
+          description: Неверные данные для входа
+          schema:
+            $ref: '#/definitions/httpx.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/httpx.Response'
+      summary: Вход в учетную запись администратора
+      tags:
+      - auth
+swagger: "2.0"

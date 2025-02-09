@@ -23,3 +23,6 @@ run-bot:
 
 test:
 	@go test -v ./...
+
+gen-docs:
+	@swag init -g cmd/api/main.go

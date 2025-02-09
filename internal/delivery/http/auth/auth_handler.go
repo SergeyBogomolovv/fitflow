@@ -32,6 +32,17 @@ func (h *handler) Handle(r *http.ServeMux) {
 	r.HandleFunc("/auth/login", h.HandleLogin)
 }
 
+// @Summary      Вход в учетную запись администратора
+// @Description  Учетные записи администратора создаются через cli утилиту
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      LoginRequest  true  "Данные для входа"
+// @Success      200    {object}  LoginResponse
+// @Failure      400    {object}  httpx.Response  "Неверный формат данных"
+// @Failure      401    {object}  httpx.Response  "Неверные данные для входа"
+// @Failure      500    {object}  httpx.Response  "Внутренняя ошибка сервера"
+// @Router       /auth/login [post]
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	dto := new(LoginRequest)
 	if err := httpx.DecodeBody(r, dto); err != nil {
