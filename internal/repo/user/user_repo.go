@@ -23,6 +23,18 @@ func (r *userRepo) SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) e
 	return err
 }
 
+func (r *userRepo) UserExists(ctx context.Context, id int64) (bool, error) {
+	var exists bool
+	query := `SELECT TRUE FROM users WHERE user_id = $1`
+	if err := r.db.GetContext(ctx, &exists, query, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return exists, nil
+}
+
 func (r *userRepo) UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error {
 	query := `UPDATE users SET subscribed = $1 WHERE user_id = $2 `
 	res, err := r.db.ExecContext(ctx, query, subscribed, id)

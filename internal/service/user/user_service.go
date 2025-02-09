@@ -10,6 +10,7 @@ import (
 
 type UserRepo interface {
 	SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) (*domain.User, error)
+	UserExists(ctx context.Context, id int64) (bool, error)
 	UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error
 	UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error
 	SubscribersByLvl(ctx context.Context, lvl domain.UserLvl) ([]domain.User, error)
@@ -26,6 +27,7 @@ type UserService interface {
 	UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error
 	UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error
 	SubscribersIdsByLvl(ctx context.Context, lvl domain.UserLvl) ([]int64, error)
+	SubscribersIds(ctx context.Context) ([]int64, error)
 }
 
 func New(logger *slog.Logger, repo UserRepo) UserService {
@@ -35,6 +37,16 @@ func New(logger *slog.Logger, repo UserRepo) UserService {
 func (s *service) SaveUser(ctx context.Context, id int64) error {
 	const op = "user.SaveUser"
 	logger := s.logger.With(slog.String("op", op), slog.Int64("id", id))
+
+	exists, err := s.repo.UserExists(ctx, id)
+	if err != nil {
+		logger.Error("failed to check user exists", "error", err)
+		return err
+	}
+	if exists {
+		return nil
+	}
+
 	logger.Debug("saving user")
 
 	user, err := s.repo.SaveUser(ctx, id, domain.UserLvlDefault)
