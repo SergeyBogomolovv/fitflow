@@ -1,6 +1,6 @@
 module github.com/SergeyBogomolovv/fitflow
 
-go 1.23.5
+go 1.23.6
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.0
@@ -18,6 +18,7 @@ require (
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.4
 	golang.org/x/crypto v0.32.0
+	gopkg.in/telebot.v4 v4.0.0-beta.4
 )
 
 require (
