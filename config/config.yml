@@ -1,0 +1,11 @@
+http:
+  port: 8080
+  host: 'localhost'
+  allowed_origins:
+    - 'http://localhost:3000'
+
+jwt:
+  ttl: 24h
+
+logger:
+  level: debug

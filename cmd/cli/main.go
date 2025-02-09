@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/SergeyBogomolovv/fitflow/internal/config"
+	"github.com/SergeyBogomolovv/fitflow/config"
 	"github.com/SergeyBogomolovv/fitflow/internal/db"
 	"github.com/SergeyBogomolovv/fitflow/internal/delivery/cli"
 	repo "github.com/SergeyBogomolovv/fitflow/internal/repo/admin"
@@ -15,8 +15,8 @@ import (
 )
 
 func main() {
-	conf := config.NewCLIConfig()
-	db := db.MustNew(conf.PostgresURL)
+	conf := config.MustNewConfig("")
+	db := db.MustNew(conf.PG.URL)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	repo := repo.NewAdminRepo(db)
 	svc := svc.NewAdminService(logger, repo)
