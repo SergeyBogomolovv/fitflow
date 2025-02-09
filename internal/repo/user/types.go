@@ -9,14 +9,14 @@ type user struct {
 	Lvl domain.UserLvl `db:"lvl"`
 }
 
-func (u user) ToDomain() domain.User {
-	return domain.User{ID: u.ID, Lvl: u.Lvl}
+func (u user) ToDomain() *domain.User {
+	return &domain.User{ID: u.ID, Lvl: u.Lvl}
 }
 
 func mapUsers(users []user) []domain.User {
 	res := make([]domain.User, len(users))
 	for i, user := range users {
-		res[i] = user.ToDomain()
+		res[i] = domain.User{ID: user.ID, Lvl: user.Lvl}
 	}
 	return res
 }

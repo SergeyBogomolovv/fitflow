@@ -1,5 +1,7 @@
 package domain
 
+import "errors"
+
 type UserLvl string
 
 const (
@@ -13,3 +15,5 @@ type User struct {
 	ID  int64
 	Lvl UserLvl
 }
+
+var ErrUserNotFound = errors.New("user not found")
