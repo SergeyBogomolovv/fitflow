@@ -36,7 +36,7 @@ type (
 	}
 
 	JWT struct {
-		Secret string        `env-required:"true" env:"JWT_SECRET"`
+		Secret []byte        `env-required:"true" env:"JWT_SECRET"`
 		TTL    time.Duration `env-required:"true" yaml:"ttl" env:"JWT_TTL"`
 	}
 )
