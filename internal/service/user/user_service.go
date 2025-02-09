@@ -10,10 +10,10 @@ import (
 
 type UserRepo interface {
 	SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) (*domain.User, error)
+	UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error
 	UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error
-	DeleteUser(ctx context.Context, id int64) error
-	UsersByLvl(ctx context.Context, lvl domain.UserLvl) ([]domain.User, error)
-	AllUsers(ctx context.Context) ([]domain.User, error)
+	SubscribersByLvl(ctx context.Context, lvl domain.UserLvl) ([]domain.User, error)
+	Subscribers(ctx context.Context) ([]domain.User, error)
 }
 
 type service struct {
@@ -21,14 +21,21 @@ type service struct {
 	repo   UserRepo
 }
 
+type UserService interface {
+	SaveUser(ctx context.Context, id int64) error
+	UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error
+	UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error
+	SubscribersIdsByLvl(ctx context.Context, lvl domain.UserLvl) ([]int64, error)
+}
+
 func New(logger *slog.Logger, repo UserRepo) UserService {
 	return &service{logger, repo}
 }
 
-func (s *service) AddUser(ctx context.Context, id int64) error {
-	const op = "user.AddUser"
+func (s *service) SaveUser(ctx context.Context, id int64) error {
+	const op = "user.SaveUser"
 	logger := s.logger.With(slog.String("op", op), slog.Int64("id", id))
-	logger.Debug("adding user")
+	logger.Debug("saving user")
 
 	user, err := s.repo.SaveUser(ctx, id, domain.UserLvlDefault)
 	if err != nil {
@@ -36,25 +43,24 @@ func (s *service) AddUser(ctx context.Context, id int64) error {
 		return err
 	}
 
-	logger.Info("user added", "user", user)
+	logger.Info("user saved", "user", user)
 	return nil
 }
 
-func (s *service) RemoveUser(ctx context.Context, id int64) error {
-	const op = "user.RemoveUser"
+func (s *service) UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error {
+	const op = "user.UpdateSubscribed"
 	logger := s.logger.With(slog.String("op", op), slog.Int64("id", id))
-	logger.Debug("deleting user")
+	logger.Debug("updating user subscribed")
 
-	if err := s.repo.DeleteUser(ctx, id); err != nil {
+	if err := s.repo.UpdateSubscribed(ctx, id, subscribed); err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			logger.Debug("user not exists")
 			return domain.ErrUserNotFound
 		}
-		logger.Error("failed to delete user", "error", err)
+		logger.Error("failed to update user subscribed", "error", err)
 		return err
 	}
 
-	logger.Info("user deleted")
 	return nil
 }
 
@@ -76,14 +82,14 @@ func (s *service) UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLv
 	return nil
 }
 
-func (s *service) UserIdsByLvl(ctx context.Context, lvl domain.UserLvl) ([]int64, error) {
+func (s *service) SubscribersIdsByLvl(ctx context.Context, lvl domain.UserLvl) ([]int64, error) {
 	const op = "user.UsersByLvl"
 	logger := s.logger.With(slog.String("op", op), slog.String("lvl", string(lvl)))
-	logger.Debug("getting users by level")
+	logger.Debug("getting subscribers by level")
 
-	users, err := s.repo.UsersByLvl(ctx, lvl)
+	users, err := s.repo.SubscribersByLvl(ctx, lvl)
 	if err != nil {
-		logger.Error("failed to get users by level", "error", err)
+		logger.Error("failed to get subscribers by level", "error", err)
 		return nil, err
 	}
 	res := make([]int64, len(users))
@@ -93,14 +99,14 @@ func (s *service) UserIdsByLvl(ctx context.Context, lvl domain.UserLvl) ([]int64
 	return res, nil
 }
 
-func (s *service) AllUserIds(ctx context.Context) ([]int64, error) {
-	const op = "user.AllUserIds"
+func (s *service) SubscribersIds(ctx context.Context) ([]int64, error) {
+	const op = "user.SubscribersIds"
 	logger := s.logger.With(slog.String("op", op))
-	logger.Debug("getting all users")
+	logger.Debug("getting all subscribers")
 
-	users, err := s.repo.AllUsers(ctx)
+	users, err := s.repo.Subscribers(ctx)
 	if err != nil {
-		logger.Error("failed to get all users", "error", err)
+		logger.Error("failed to get all subscribers", "error", err)
 		return nil, err
 	}
 	res := make([]int64, len(users))

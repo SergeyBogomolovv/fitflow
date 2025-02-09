@@ -5,8 +5,9 @@ import (
 )
 
 type user struct {
-	ID  int64          `db:"user_id"`
-	Lvl domain.UserLvl `db:"lvl"`
+	ID         int64          `db:"user_id"`
+	Lvl        domain.UserLvl `db:"lvl"`
+	Subscribed bool           `db:"subscribed"`
 }
 
 func (u user) ToDomain() *domain.User {
