@@ -18,6 +18,8 @@ import (
 func main() {
 	conf := config.MustNewConfig("./config/config.yml")
 	db := db.MustNew(conf.PG.URL)
+	defer db.Close()
+
 	logger := logger.MustNew(conf.Log.Level, io.Discard)
 	repo := adminRepo.New(db)
 	svc := adminSvc.New(logger, repo)
