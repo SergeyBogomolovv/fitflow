@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
-	svc "github.com/SergeyBogomolovv/fitflow/internal/service/admin"
+	adminSvc "github.com/SergeyBogomolovv/fitflow/internal/service/admin"
 	"github.com/SergeyBogomolovv/fitflow/pkg/auth"
 	testutils "github.com/SergeyBogomolovv/fitflow/pkg/test_utils"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +14,7 @@ import (
 
 func TestAdminService_CreateAdmin(t *testing.T) {
 	mockRepo := new(mockAdminRepo)
-	svc := svc.NewAdminService(testutils.NewTestLogger(), mockRepo)
+	svc := adminSvc.New(testutils.NewTestLogger(), mockRepo)
 	ctx := context.Background()
 
 	t.Run("success", func(t *testing.T) {
@@ -58,7 +58,7 @@ func TestAdminService_CreateAdmin(t *testing.T) {
 
 func TestAdminService_UpdatePassword(t *testing.T) {
 	mockRepo := new(mockAdminRepo)
-	svc := svc.NewAdminService(testutils.NewTestLogger(), mockRepo)
+	svc := adminSvc.New(testutils.NewTestLogger(), mockRepo)
 	ctx := context.Background()
 
 	t.Run("success", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestAdminService_UpdatePassword(t *testing.T) {
 
 func TestAdminService_RemoveAdmin(t *testing.T) {
 	mockRepo := new(mockAdminRepo)
-	svc := svc.NewAdminService(testutils.NewTestLogger(), mockRepo)
+	svc := adminSvc.New(testutils.NewTestLogger(), mockRepo)
 	ctx := context.Background()
 
 	t.Run("success", func(t *testing.T) {

@@ -22,7 +22,7 @@ type adminService struct {
 	repo   AdminRepo
 }
 
-func NewAdminService(logger *slog.Logger, repo AdminRepo) *adminService {
+func New(logger *slog.Logger, repo AdminRepo) *adminService {
 	return &adminService{logger, repo}
 }
 
