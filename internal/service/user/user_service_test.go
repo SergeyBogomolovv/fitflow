@@ -19,7 +19,7 @@ func TestUserService_SaveUser(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		mockRepo.On("UserExists", ctx, userId).Return(false, nil).Once()
-		mockRepo.On("SaveUser", ctx, userId, domain.UserLvlDefault).Return(&domain.User{ID: userId}, nil).Once()
+		mockRepo.On("SaveUser", ctx, userId, domain.UserLvlDefault).Return(nil).Once()
 		err := svc.SaveUser(ctx, userId)
 		assert.NoError(t, err)
 		mockRepo.AssertExpectations(t)
@@ -34,7 +34,7 @@ func TestUserService_SaveUser(t *testing.T) {
 
 	t.Run("repo error", func(t *testing.T) {
 		mockRepo.On("UserExists", ctx, userId).Return(false, nil).Once()
-		mockRepo.On("SaveUser", ctx, userId, domain.UserLvlDefault).Return((*domain.User)(nil), assert.AnError).Once()
+		mockRepo.On("SaveUser", ctx, userId, domain.UserLvlDefault).Return(assert.AnError).Once()
 		err := svc.SaveUser(ctx, userId)
 		assert.Error(t, err)
 		mockRepo.AssertExpectations(t)
@@ -126,9 +126,9 @@ type mockUserRepo struct {
 	mock.Mock
 }
 
-func (m *mockUserRepo) SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) (*domain.User, error) {
+func (m *mockUserRepo) SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) error {
 	args := m.Called(ctx, id, lvl)
-	return args.Get(0).(*domain.User), args.Error(1)
+	return args.Error(0)
 }
 
 func (m *mockUserRepo) UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error {

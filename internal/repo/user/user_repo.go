@@ -19,7 +19,7 @@ func New(db *sqlx.DB) *userRepo {
 
 func (r *userRepo) SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) error {
 	query := `INSERT INTO users (user_id, lvl) VALUES ($1, $2)`
-	_, err := r.db.ExecContext(ctx, query, lvl, id)
+	_, err := r.db.ExecContext(ctx, query, id, lvl)
 	return err
 }
 

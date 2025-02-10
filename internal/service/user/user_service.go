@@ -9,7 +9,7 @@ import (
 )
 
 type UserRepo interface {
-	SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) (*domain.User, error)
+	SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) error
 	UserExists(ctx context.Context, id int64) (bool, error)
 	UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error
 	UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error
@@ -34,6 +34,7 @@ func New(logger *slog.Logger, repo UserRepo) UserService {
 	return &service{logger, repo}
 }
 
+// SaveUser creates new user if not exists
 func (s *service) SaveUser(ctx context.Context, id int64) error {
 	const op = "user.SaveUser"
 	logger := s.logger.With(slog.String("op", op), slog.Int64("id", id))
@@ -49,13 +50,12 @@ func (s *service) SaveUser(ctx context.Context, id int64) error {
 
 	logger.Debug("saving user")
 
-	user, err := s.repo.SaveUser(ctx, id, domain.UserLvlDefault)
-	if err != nil {
+	if err := s.repo.SaveUser(ctx, id, domain.UserLvlDefault); err != nil {
 		logger.Error("failed to save user", "error", err)
 		return err
 	}
 
-	logger.Info("user saved", "user", user)
+	logger.Info("user saved")
 	return nil
 }
 
