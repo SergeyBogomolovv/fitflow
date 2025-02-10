@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"slices"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	tele "gopkg.in/telebot.v4"
@@ -31,13 +32,24 @@ func (h *handler) askQuestion(c tele.Context, state *UserTestState) error {
 	if state.CurrentQuestion >= len(questions) {
 		return h.finishTest(c, state)
 	}
-
 	q := questions[state.CurrentQuestion]
+
+	type answer struct {
+		text string
+		num  int
+	}
+	answers := make([]answer, 0, len(q.Answers))
+	for ans, num := range q.Answers {
+		answers = append(answers, answer{ans, num})
+	}
+	slices.SortFunc(answers, func(a, b answer) int {
+		return a.num - b.num
+	})
+
 	markup := &tele.ReplyMarkup{}
 	rows := make([]tele.Row, 0, len(q.Answers))
-
-	for question := range q.Answers {
-		rows = append(rows, tele.Row{markup.Text(question)})
+	for _, ans := range answers {
+		rows = append(rows, tele.Row{markup.Text(ans.text)})
 	}
 
 	markup.Reply(rows...)
