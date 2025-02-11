@@ -9,3 +9,6 @@ jwt:
 
 logger:
   level: debug
+
+telegram:
+  posts_delay: 10h

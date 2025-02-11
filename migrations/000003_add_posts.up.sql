@@ -5,6 +5,5 @@ CREATE TABLE posts
 	audience user_lvl NOT NULL DEFAULT 'default',
 	images TEXT[] DEFAULT '{}',
 	created_at TIMESTAMP DEFAULT NOW(),
-	scheduled_at TIMESTAMP NOT NULL,
 	posted BOOLEAN NOT NULL DEFAULT FALSE
 );

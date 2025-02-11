@@ -17,19 +17,25 @@ type UserService interface {
 	SubscribersIds(ctx context.Context) ([]int64, error)
 }
 
+type PostService interface {
+	PickLatest(ctx context.Context, audience domain.UserLvl) (*domain.Post, error)
+	MarkAsPosted(ctx context.Context, id int64) error
+}
+
 type handler struct {
 	logger *slog.Logger
 	bot    *tele.Bot
 	users  UserService
+	posts  PostService
 	state  state.State
 }
 
-func New(logger *slog.Logger, bot *tele.Bot, users UserService) *handler {
+func New(logger *slog.Logger, bot *tele.Bot, posts PostService, users UserService) *handler {
 	state := state.NewState()
-	return &handler{logger, bot, users, state}
+	return &handler{logger, bot, users, posts, state}
 }
 
-func (h *handler) Handle() {
+func (h *handler) Init() {
 	h.bot.Handle(cmdStart, h.handleStart)
 	h.bot.Handle(cmdAbout, h.handleAbout)
 	h.bot.Handle(cmdSubscribe, h.handleSubscribe)
@@ -48,7 +54,7 @@ func (h *handler) handleStart(c tele.Context) error {
 	if err := h.users.SaveUser(context.TODO(), userID); err != nil {
 		logger.Error("failed to save user")
 	}
-	return c.Send(startMessage, defaultKeyboard)
+	return c.Send(startMessage, defaultKeyboard, tele.ModeMarkdown)
 }
 
 func (h *handler) handleAbout(c tele.Context) error {

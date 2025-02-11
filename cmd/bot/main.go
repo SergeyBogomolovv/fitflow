@@ -10,7 +10,9 @@ import (
 
 	"github.com/SergeyBogomolovv/fitflow/config"
 	"github.com/SergeyBogomolovv/fitflow/internal/delivery/telegram"
+	postRepo "github.com/SergeyBogomolovv/fitflow/internal/repo/post"
 	userRepo "github.com/SergeyBogomolovv/fitflow/internal/repo/user"
+	postSvc "github.com/SergeyBogomolovv/fitflow/internal/service/post"
 	userSvc "github.com/SergeyBogomolovv/fitflow/internal/service/user"
 	"github.com/SergeyBogomolovv/fitflow/pkg/bot"
 	"github.com/SergeyBogomolovv/fitflow/pkg/db"
@@ -23,11 +25,16 @@ func main() {
 
 	logger := logger.MustNew(conf.Log.Level, os.Stdout)
 	db := db.MustNew(conf.PG.URL)
-	b := bot.MustNew(conf.TG.Token)
+	bot := bot.MustNew(conf.TG.Token)
 
 	userRepo := userRepo.New(db)
 	userSvc := userSvc.New(logger, userRepo)
-	bot := telegram.New(logger, b, userSvc)
+
+	postsRepo := postRepo.New(db)
+	postSvc := postSvc.New(logger, postsRepo)
+
+	telegram := telegram.New(logger, bot, postSvc, userSvc)
+	telegram.Init()
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -37,14 +44,14 @@ func main() {
 	go func() {
 		defer wg.Done()
 		<-ctx.Done()
-		b.Stop()
+		bot.Stop()
 		db.Close()
 		logger.Info("bot stopped")
 	}()
 
-	logger.Info("starting bot", slog.String("name", b.Me.FirstName))
-	bot.Handle()
-	b.Start()
+	logger.Info("starting bot", slog.String("name", bot.Me.FirstName))
+	go telegram.RunScheduler(ctx, conf.TG.PostsDelay)
+	bot.Start()
 	wg.Wait()
 }
 

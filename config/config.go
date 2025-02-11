@@ -13,7 +13,7 @@ type (
 		JWT  JWT  `yaml:"jwt"`
 		Log  Log  `yaml:"logger"`
 		PG   PG
-		TG   TG
+		TG   TG `yaml:"telegram"`
 	}
 
 	HTTP struct {
@@ -31,7 +31,8 @@ type (
 	}
 
 	TG struct {
-		Token string `env-required:"true" env:"BOT_TOKEN"`
+		Token      string        `env-required:"true" env:"BOT_TOKEN"`
+		PostsDelay time.Duration `env-required:"true" yaml:"posts_delay" env:"TELEGRAM_POSTS_DELAY"`
 	}
 
 	JWT struct {
