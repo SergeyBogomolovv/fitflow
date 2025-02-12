@@ -19,11 +19,13 @@ type AdminService interface {
 }
 
 type adminCli struct {
-	svc AdminService
+	reader *bufio.Reader
+	svc    AdminService
 }
 
 func NewAdminCLI(svc AdminService) *adminCli {
-	return &adminCli{svc}
+	reader := bufio.NewReader(os.Stdin)
+	return &adminCli{reader, svc}
 }
 
 func (c *adminCli) Run(ctx context.Context) {
@@ -33,23 +35,21 @@ func (c *adminCli) Run(ctx context.Context) {
 	}
 	command := os.Args[1]
 
-	reader := bufio.NewReader(os.Stdin)
-
 	switch command {
 	case "create":
-		c.handleCreate(ctx, reader)
+		c.handleCreate(ctx)
 	case "update-password":
-		c.handleUpdatePassword(ctx, reader)
+		c.handleUpdatePassword(ctx)
 	case "remove":
-		c.handleRemove(ctx, reader)
+		c.handleRemove(ctx)
 	default:
 		fmt.Println("Неизвестная команда. Используйте: create, update-password, remove")
 	}
 }
 
-func (c *adminCli) handleCreate(ctx context.Context, reader *bufio.Reader) {
-	login := readPrompt(reader, "Логин: ")
-	password := readPrompt(reader, "Пароль: ")
+func (c *adminCli) handleCreate(ctx context.Context) {
+	login := c.readPrompt("Логин: ")
+	password := c.readPrompt("Пароль: ")
 	if login == "" || password == "" {
 		fmt.Println("Логин и пароль не могут быть пустыми.")
 		return
@@ -66,10 +66,10 @@ func (c *adminCli) handleCreate(ctx context.Context, reader *bufio.Reader) {
 	fmt.Println("Администратор создан.")
 }
 
-func (c *adminCli) handleUpdatePassword(ctx context.Context, reader *bufio.Reader) {
-	login := readPrompt(reader, "Логин: ")
-	oldPass := readPrompt(reader, "Старый пароль: ")
-	password := readPrompt(reader, "Новый пароль: ")
+func (c *adminCli) handleUpdatePassword(ctx context.Context) {
+	login := c.readPrompt("Логин: ")
+	oldPass := c.readPrompt("Старый пароль: ")
+	password := c.readPrompt("Новый пароль: ")
 	err := c.svc.UpdatePassword(ctx, login, oldPass, password)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidCredentials) {
@@ -82,8 +82,8 @@ func (c *adminCli) handleUpdatePassword(ctx context.Context, reader *bufio.Reade
 	fmt.Println("Пароль обновлён.")
 }
 
-func (c *adminCli) handleRemove(ctx context.Context, reader *bufio.Reader) {
-	login := readPrompt(reader, "Логин: ")
+func (c *adminCli) handleRemove(ctx context.Context) {
+	login := c.readPrompt("Логин: ")
 	err := c.svc.RemoveAdmin(ctx, login)
 	if err != nil {
 		if errors.Is(err, domain.ErrAdminNotFound) {
@@ -95,9 +95,9 @@ func (c *adminCli) handleRemove(ctx context.Context, reader *bufio.Reader) {
 	fmt.Println("Администратор удалён.")
 }
 
-func readPrompt(reader *bufio.Reader, prompt string) string {
+func (c *adminCli) readPrompt(prompt string) string {
 	fmt.Print(prompt)
-	input, err := reader.ReadString('\n')
+	input, err := c.reader.ReadString('\n')
 	if err != nil {
 		log.Fatalf("Ошибка ввода: %v", err)
 	}
