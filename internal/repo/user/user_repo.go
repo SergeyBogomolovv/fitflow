@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	"github.com/jmoiron/sqlx"
 )
@@ -67,22 +68,18 @@ func (r *userRepo) UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserL
 	return nil
 }
 
-func (r *userRepo) SubscribersByLvl(ctx context.Context, lvl domain.UserLvl) ([]domain.User, error) {
+func (r *userRepo) Subscribers(ctx context.Context, lvl domain.UserLvl, all bool) ([]domain.User, error) {
 	var entities []user
-	query := `SELECT user_id, lvl FROM users WHERE subscribed = true AND lvl = $1`
-	if err := r.db.SelectContext(ctx, &entities, query, lvl); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []domain.User{}, nil
-		}
+	builder := sq.Select("user_id", "lvl").From("users").Where("subscribed = true")
+	if !all {
+		builder = builder.Where("lvl = $1", lvl)
+	}
+	query, args, err := builder.ToSql()
+	if err != nil {
 		return nil, err
 	}
-	return mapUsers(entities), nil
-}
 
-func (r *userRepo) Subscribers(ctx context.Context) ([]domain.User, error) {
-	var entities []user
-	query := `SELECT user_id, lvl FROM users WHERE subscribed = true`
-	if err := r.db.SelectContext(ctx, &entities, query); err != nil {
+	if err := r.db.SelectContext(ctx, &entities, query, args...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []domain.User{}, nil
 		}

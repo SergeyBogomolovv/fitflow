@@ -11,4 +11,5 @@ logger:
   level: debug
 
 telegram:
-  posts_delay: 10h
+  level_spec: '*/10 * * * * *'
+  broadcast_spec: '*/10 * * * * *'

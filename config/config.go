@@ -31,8 +31,9 @@ type (
 	}
 
 	TG struct {
-		Token      string        `env-required:"true" env:"BOT_TOKEN"`
-		PostsDelay time.Duration `env-required:"true" yaml:"posts_delay" env:"TELEGRAM_POSTS_DELAY"`
+		Token         string `env-required:"true" env:"BOT_TOKEN"`
+		BroadcastSpec string `env-required:"true" yaml:"broadcast_spec" env:"BOT_BROADCAST_SPEC"`
+		LevelSpec     string `env-required:"true" yaml:"level_spec" env:"BOT_LEVEL_SPEC"`
 	}
 
 	JWT struct {

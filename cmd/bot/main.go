@@ -44,13 +44,15 @@ func main() {
 	go func() {
 		defer wg.Done()
 		<-ctx.Done()
+		stopCtx := telegram.StopScheduler()
+		<-stopCtx.Done()
 		bot.Stop()
 		db.Close()
 		logger.Info("bot stopped")
 	}()
 
 	logger.Info("starting bot", slog.String("name", bot.Me.FirstName))
-	go telegram.RunScheduler(ctx, conf.TG.PostsDelay)
+	telegram.RunScheduler(ctx, conf.TG.BroadcastSpec, conf.TG.LevelSpec)
 	bot.Start()
 	wg.Wait()
 }

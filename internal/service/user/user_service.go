@@ -13,8 +13,7 @@ type UserRepo interface {
 	UserExists(ctx context.Context, id int64) (bool, error)
 	UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error
 	UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error
-	SubscribersByLvl(ctx context.Context, lvl domain.UserLvl) ([]domain.User, error)
-	Subscribers(ctx context.Context) ([]domain.User, error)
+	Subscribers(ctx context.Context, lvl domain.UserLvl, all bool) ([]domain.User, error)
 }
 
 type service struct {
@@ -26,8 +25,7 @@ type UserService interface {
 	SaveUser(ctx context.Context, id int64) error
 	UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error
 	UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error
-	SubscribersIdsByLvl(ctx context.Context, lvl domain.UserLvl) ([]int64, error)
-	SubscribersIds(ctx context.Context) ([]int64, error)
+	SubscribersIds(ctx context.Context, lvl domain.UserLvl) ([]int64, error)
 }
 
 func New(logger *slog.Logger, repo UserRepo) UserService {
@@ -94,31 +92,19 @@ func (s *service) UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLv
 	return nil
 }
 
-func (s *service) SubscribersIdsByLvl(ctx context.Context, lvl domain.UserLvl) ([]int64, error) {
-	const op = "user.UsersByLvl"
-	logger := s.logger.With(slog.String("op", op), slog.String("lvl", string(lvl)))
-	logger.Debug("getting subscribers by level")
-
-	users, err := s.repo.SubscribersByLvl(ctx, lvl)
-	if err != nil {
-		logger.Error("failed to get subscribers by level", "error", err)
-		return nil, err
-	}
-	res := make([]int64, len(users))
-	for i, user := range users {
-		res[i] = user.ID
-	}
-	return res, nil
-}
-
-func (s *service) SubscribersIds(ctx context.Context) ([]int64, error) {
+// if lvl is default it returns all subscribers ids
+func (s *service) SubscribersIds(ctx context.Context, lvl domain.UserLvl) ([]int64, error) {
 	const op = "user.SubscribersIds"
 	logger := s.logger.With(slog.String("op", op))
-	logger.Debug("getting all subscribers")
 
-	users, err := s.repo.Subscribers(ctx)
+	var all bool
+	if lvl == domain.UserLvlDefault {
+		all = true
+	}
+
+	users, err := s.repo.Subscribers(ctx, lvl, all)
 	if err != nil {
-		logger.Error("failed to get all subscribers", "error", err)
+		logger.Error("failed to get subscribers", "error", err)
 		return nil, err
 	}
 	res := make([]int64, len(users))

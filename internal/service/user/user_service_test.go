@@ -62,21 +62,6 @@ func TestUserService_UpdateSubscribed(t *testing.T) {
 	})
 }
 
-func TestUserService_SubscribersIdsByLvl(t *testing.T) {
-	mockRepo := new(mockUserRepo)
-	svc := userSvc.New(testutils.NewTestLogger(), mockRepo)
-	ctx := context.Background()
-	users := []domain.User{{ID: 1}, {ID: 2}}
-
-	t.Run("success", func(t *testing.T) {
-		mockRepo.On("SubscribersByLvl", ctx, domain.UserLvlDefault).Return(users, nil)
-		ids, err := svc.SubscribersIdsByLvl(ctx, domain.UserLvlDefault)
-		assert.NoError(t, err)
-		assert.ElementsMatch(t, []int64{1, 2}, ids)
-		mockRepo.AssertExpectations(t)
-	})
-}
-
 func TestUserService_UpdateUserLvl(t *testing.T) {
 	mockRepo := new(mockUserRepo)
 	svc := userSvc.New(testutils.NewTestLogger(), mockRepo)
@@ -106,16 +91,24 @@ func TestUserService_SubscribersIds(t *testing.T) {
 	users := []domain.User{{ID: 1}, {ID: 2}, {ID: 3}}
 
 	t.Run("success", func(t *testing.T) {
-		mockRepo.On("Subscribers", ctx).Return(users, nil).Once()
-		ids, err := svc.SubscribersIds(ctx)
+		mockRepo.On("Subscribers", ctx, domain.UserLvlBeginner, false).Return(users, nil).Once()
+		ids, err := svc.SubscribersIds(ctx, domain.UserLvlBeginner)
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, []int64{1, 2, 3}, ids)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("all subscribers", func(t *testing.T) {
+		mockRepo.On("Subscribers", ctx, domain.UserLvlDefault, true).Return(users, nil).Once()
+		ids, err := svc.SubscribersIds(ctx, domain.UserLvlDefault)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, []int64{1, 2, 3}, ids)
 		mockRepo.AssertExpectations(t)
 	})
 
 	t.Run("repo error", func(t *testing.T) {
-		mockRepo.On("Subscribers", ctx).Return(([]domain.User)(nil), assert.AnError).Once()
-		ids, err := svc.SubscribersIds(ctx)
+		mockRepo.On("Subscribers", ctx, domain.UserLvlDefault, true).Return(([]domain.User)(nil), assert.AnError).Once()
+		ids, err := svc.SubscribersIds(ctx, domain.UserLvlDefault)
 		assert.Error(t, err)
 		assert.Nil(t, ids)
 		mockRepo.AssertExpectations(t)
@@ -141,13 +134,8 @@ func (m *mockUserRepo) UpdateUserLvl(ctx context.Context, id int64, lvl domain.U
 	return args.Error(0)
 }
 
-func (m *mockUserRepo) SubscribersByLvl(ctx context.Context, lvl domain.UserLvl) ([]domain.User, error) {
-	args := m.Called(ctx, lvl)
-	return args.Get(0).([]domain.User), args.Error(1)
-}
-
-func (m *mockUserRepo) Subscribers(ctx context.Context) ([]domain.User, error) {
-	args := m.Called(ctx)
+func (m *mockUserRepo) Subscribers(ctx context.Context, lvl domain.UserLvl, all bool) ([]domain.User, error) {
+	args := m.Called(ctx, lvl, all)
 	return args.Get(0).([]domain.User), args.Error(1)
 }
 

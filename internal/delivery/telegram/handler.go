@@ -6,6 +6,7 @@ import (
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	"github.com/SergeyBogomolovv/fitflow/pkg/state"
+	"github.com/robfig/cron/v3"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -13,8 +14,7 @@ type UserService interface {
 	SaveUser(ctx context.Context, id int64) error
 	UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error
 	UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error
-	SubscribersIdsByLvl(ctx context.Context, lvl domain.UserLvl) ([]int64, error)
-	SubscribersIds(ctx context.Context) ([]int64, error)
+	SubscribersIds(ctx context.Context, lvl domain.UserLvl) ([]int64, error)
 }
 
 type PostService interface {
@@ -28,11 +28,13 @@ type handler struct {
 	users  UserService
 	posts  PostService
 	state  state.State
+	cron   *cron.Cron
 }
 
 func New(logger *slog.Logger, bot *tele.Bot, posts PostService, users UserService) *handler {
 	state := state.NewState()
-	return &handler{logger, bot, users, posts, state}
+	cron := cron.New(cron.WithSeconds())
+	return &handler{logger, bot, users, posts, state, cron}
 }
 
 func (h *handler) Init() {
