@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"io"
 	"os"
 	"os/signal"
@@ -17,7 +18,10 @@ import (
 )
 
 func main() {
-	conf := config.MustNewConfig("./config/config.yml")
+	confPath := flag.String("config", "./config/config.yml", "path to config file")
+	flag.Parse()
+	conf := config.MustNewConfig(*confPath)
+
 	db := db.MustNew(conf.PG.URL)
 	defer db.Close()
 

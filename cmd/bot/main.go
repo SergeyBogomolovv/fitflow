@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -21,7 +22,9 @@ import (
 )
 
 func main() {
-	conf := config.MustNewConfig("./config/config.yml")
+	confPath := flag.String("config", "./config/config.yml", "path to config file")
+	flag.Parse()
+	conf := config.MustNewConfig(*confPath)
 
 	logger := logger.MustNew(conf.Log.Level, os.Stdout)
 	db := db.MustNew(conf.PG.URL)

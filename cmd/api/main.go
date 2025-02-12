@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,7 +23,10 @@ import (
 // @version 0.0.1
 // @description Описание API для сервиса FitFlow
 func main() {
-	conf := config.MustNewConfig("./config/config.yml")
+	confPath := flag.String("config", "./config/config.yml", "path to config file")
+	flag.Parse()
+	conf := config.MustNewConfig(*confPath)
+
 	db := db.MustNew(conf.PG.URL)
 	defer db.Close()
 
