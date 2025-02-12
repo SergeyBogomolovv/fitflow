@@ -27,7 +27,6 @@ func New(logger *slog.Logger, repo PostRepo) *postService {
 func (s *postService) PickLatest(ctx context.Context, audience domain.UserLvl) (*domain.Post, error) {
 	const op = "post.PickLatest"
 	logger := s.logger.With(slog.String("op", op), slog.String("audience", string(audience)))
-	logger.Debug("picking latest post")
 
 	post, err := s.postRepo.LatestPostByAudience(ctx, audience)
 	if err != nil {

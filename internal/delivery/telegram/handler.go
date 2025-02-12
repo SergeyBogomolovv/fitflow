@@ -60,7 +60,7 @@ func (h *handler) handleStart(c tele.Context) error {
 }
 
 func (h *handler) handleAbout(c tele.Context) error {
-	return c.Send(aboutMessage)
+	return c.Send(aboutMessage, tele.ModeMarkdown)
 }
 
 func (h *handler) handleText(c tele.Context) error {
