@@ -45,4 +45,4 @@ jobs:
         with:
           file: ./build/cli.Dockerfile
           push: true
-          tags: grekas/fitflow/cli:latest
+          tags: grekas/fitflow_cli:latest
