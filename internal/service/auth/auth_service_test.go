@@ -7,6 +7,7 @@ import (
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	authSvc "github.com/SergeyBogomolovv/fitflow/internal/service/auth"
+	"github.com/SergeyBogomolovv/fitflow/internal/service/auth/mocks"
 	"github.com/SergeyBogomolovv/fitflow/pkg/auth"
 	testutils "github.com/SergeyBogomolovv/fitflow/pkg/test_utils"
 	"github.com/stretchr/testify/assert"
@@ -15,60 +16,92 @@ import (
 )
 
 func TestAuthService_Login(t *testing.T) {
-	mockRepo := new(adminRepoMock)
-	svc := authSvc.New(testutils.NewTestLogger(), mockRepo, []byte("secret"), time.Hour)
-	ctx := context.Background()
+	type args struct {
+		ctx      context.Context
+		login    string
+		password string
+	}
 
-	t.Run("success", func(t *testing.T) {
-		hashed, err := auth.HashPassword("password")
-		require.NoError(t, err)
+	type MockBehavior func(repo *mocks.AdminRepo, args args)
 
-		mockRepo.On("AdminByLogin", ctx, "success").Return(&domain.Admin{Login: "success", Password: hashed}, nil)
+	testCases := []struct {
+		name         string
+		args         args
+		mockBehavior MockBehavior
+		want         string
+		wantErr      error
+	}{
+		{
+			name: "success",
+			args: args{
+				ctx:      context.Background(),
+				login:    "login",
+				password: "password",
+			},
+			mockBehavior: func(repo *mocks.AdminRepo, args args) {
+				hashedPassword, err := auth.HashPassword(args.password)
+				require.NoError(t, err)
+				repo.EXPECT().AdminByLogin(args.ctx, args.login).Return(domain.Admin{Password: hashedPassword}, nil).Once()
+			},
+			want:    string(mock.AnythingOfType("string")),
+			wantErr: nil,
+		},
+		{
+			name: "admin not found",
+			args: args{
+				ctx:      context.Background(),
+				login:    "login",
+				password: "password",
+			},
+			mockBehavior: func(repo *mocks.AdminRepo, args args) {
+				repo.EXPECT().AdminByLogin(args.ctx, args.login).Return(domain.Admin{}, domain.ErrAdminNotFound).Once()
+			},
+			want:    "",
+			wantErr: domain.ErrInvalidCredentials,
+		},
+		{
+			name: "wrong password",
+			args: args{
+				ctx:      context.Background(),
+				login:    "login",
+				password: "password",
+			},
+			mockBehavior: func(repo *mocks.AdminRepo, args args) {
+				repo.EXPECT().AdminByLogin(args.ctx, args.login).Return(domain.Admin{Password: []byte("hash")}, nil).Once()
+			},
+			want:    "",
+			wantErr: domain.ErrInvalidCredentials,
+		},
+		{
+			name: "failed to get admin",
+			args: args{
+				ctx:      context.Background(),
+				login:    "login",
+				password: "password",
+			},
+			mockBehavior: func(repo *mocks.AdminRepo, args args) {
+				repo.EXPECT().AdminByLogin(args.ctx, args.login).Return(domain.Admin{}, assert.AnError).Once()
+			},
+			want:    "",
+			wantErr: assert.AnError,
+		},
+	}
 
-		token, err := svc.Login(ctx, "success", "password")
-		res, err := auth.VerifyJWT(token, []byte("secret"))
-		require.NoError(t, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := mocks.NewAdminRepo(t)
+			tc.mockBehavior(repo, tc.args)
 
-		assert.Equal(t, res, "success")
-		mockRepo.AssertExpectations(t)
-	})
+			svc := authSvc.New(testutils.NewTestLogger(), repo, []byte("secret"), time.Hour)
+			got, err := svc.Login(tc.args.ctx, tc.args.login, tc.args.password)
 
-	t.Run("wrong password", func(t *testing.T) {
-		hashed, err := auth.HashPassword("password")
-		require.NoError(t, err)
+			if tc.wantErr != nil {
+				assert.ErrorIs(t, tc.wantErr, err)
+				return
+			}
 
-		mockRepo.On("AdminByLogin", ctx, "wrongpass").Return(&domain.Admin{Login: "wrongpass", Password: hashed}, nil)
-
-		_, err = svc.Login(ctx, "wrongpass", "wrong")
-
-		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
-		mockRepo.AssertExpectations(t)
-	})
-
-	t.Run("wrong login", func(t *testing.T) {
-		mockRepo.On("AdminByLogin", ctx, "notexists").Return((*domain.Admin)(nil), domain.ErrAdminNotFound)
-
-		_, err := svc.Login(ctx, "notexists", "password")
-
-		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
-		mockRepo.AssertExpectations(t)
-	})
-
-	t.Run("repo error", func(t *testing.T) {
-		mockRepo.On("AdminByLogin", ctx, "error").Return((*domain.Admin)(nil), assert.AnError)
-
-		_, err := svc.Login(ctx, "error", "password")
-
-		assert.Error(t, err)
-		mockRepo.AssertExpectations(t)
-	})
-}
-
-type adminRepoMock struct {
-	mock.Mock
-}
-
-func (m *adminRepoMock) AdminByLogin(ctx context.Context, login string) (*domain.Admin, error) {
-	args := m.Called(ctx, login)
-	return args.Get(0).(*domain.Admin), args.Error(1)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, got)
+		})
+	}
 }

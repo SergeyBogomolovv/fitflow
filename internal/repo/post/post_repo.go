@@ -4,40 +4,46 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
 type postRepo struct {
+	qb sq.StatementBuilderType
 	db *sqlx.DB
 }
 
 func New(db *sqlx.DB) *postRepo {
-	return &postRepo{db: db}
+	qb := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	return &postRepo{db: db, qb: qb}
 }
 
-func (r *postRepo) LatestPostByAudience(ctx context.Context, audience domain.UserLvl) (*domain.Post, error) {
-	post := new(post)
-	query := `
-	SELECT post_id, content, audience, images, created_at, posted
-	FROM posts 
-	WHERE posted = false AND audience = $1
-	ORDER BY created_at DESC
-	LIMIT 1`
-	if err := r.db.GetContext(ctx, post, query, audience); err != nil {
+func (r *postRepo) LatestPostByAudience(ctx context.Context, audience domain.UserLvl) (domain.Post, error) {
+	query, args := r.qb.
+		Select("post_id", "content", "audience", "images", "created_at", "posted").
+		From("posts").
+		Where(sq.Eq{"audience": audience, "posted": false}).
+		OrderBy("created_at DESC").
+		Limit(1).
+		MustSql()
+
+	var post Post
+	if err := r.db.GetContext(ctx, &post, query, args...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrNoPosts
+			return domain.Post{}, domain.ErrNoPosts
 		}
-		return nil, err
+		return domain.Post{}, fmt.Errorf("failed to get latest post: %w", err)
 	}
 	return post.ToDomain(), nil
 }
 
 func (r *postRepo) MarkAsPosted(ctx context.Context, id int64) error {
-	query := `UPDATE posts SET posted = true WHERE post_id = $1`
-	res, err := r.db.ExecContext(ctx, query, id)
+	query, args := r.qb.Update("posts").Set("posted", true).Where(sq.Eq{"post_id": id}).MustSql()
+	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -51,8 +57,13 @@ func (r *postRepo) MarkAsPosted(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *postRepo) SavePost(ctx context.Context, post CreatePostInput) error {
-	query := `INSERT INTO posts (content, audience, images) VALUES ($1, $2, $3)`
-	_, err := r.db.ExecContext(ctx, query, post.Content, post.Audience, pq.Array(post.Images))
+func (r *postRepo) SavePost(ctx context.Context, in SavePostInput) error {
+	query, args := r.qb.
+		Insert("posts").
+		Columns("content", "audience", "images").
+		Values(in.Content, in.Audience, pq.Array(in.Images)).
+		MustSql()
+
+	_, err := r.db.ExecContext(ctx, query, args...)
 	return err
 }

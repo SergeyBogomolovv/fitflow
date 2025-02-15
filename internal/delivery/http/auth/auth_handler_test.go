@@ -1,117 +1,98 @@
 package auth_test
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	authHandler "github.com/SergeyBogomolovv/fitflow/internal/delivery/http/auth"
+	"github.com/SergeyBogomolovv/fitflow/internal/delivery/http/auth/mocks"
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	testutils "github.com/SergeyBogomolovv/fitflow/pkg/test_utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAuthHandler_Login(t *testing.T) {
-	mockSvc := new(authServiceMock)
-	handler := authHandler.New(testutils.NewTestLogger(), mockSvc)
+	type MockBehavior func(repo *mocks.AuthService, body authHandler.LoginRequest)
 
-	t.Run("success", func(t *testing.T) {
-		reqBody := authHandler.LoginRequest{
-			Login:    "test_user",
-			Password: "correct_password",
-		}
-		mockSvc.On("Login", mock.Anything, reqBody.Login, reqBody.Password).
-			Return("valid_token", nil).Once()
+	testCases := []struct {
+		name           string
+		body           authHandler.LoginRequest
+		mockBehavior   MockBehavior
+		wantStatusCode int
+		wantBody       string
+	}{
+		{
+			name: "success",
+			body: authHandler.LoginRequest{
+				Login:    "test_login",
+				Password: "correct_password",
+			},
+			mockBehavior: func(repo *mocks.AuthService, body authHandler.LoginRequest) {
+				repo.EXPECT().Login(mock.Anything, body.Login, body.Password).Return("valid_token", nil).Once()
+			},
+			wantStatusCode: http.StatusOK,
+			wantBody:       `{"token":"valid_token"}` + "\n",
+		},
+		{
+			name: "no password",
+			body: authHandler.LoginRequest{
+				Login: "test_login",
+			},
+			mockBehavior:   func(repo *mocks.AuthService, body authHandler.LoginRequest) {},
+			wantStatusCode: http.StatusBadRequest,
+			wantBody:       `{"status":"error","code":400,"message":"invalid payload"}` + "\n",
+		},
+		{
+			name: "no login",
+			body: authHandler.LoginRequest{
+				Password: "test_password",
+			},
+			mockBehavior:   func(repo *mocks.AuthService, body authHandler.LoginRequest) {},
+			wantStatusCode: http.StatusBadRequest,
+			wantBody:       `{"status":"error","code":400,"message":"invalid payload"}` + "\n",
+		},
+		{
+			name: "invalid credentials",
+			body: authHandler.LoginRequest{
+				Login:    "test_login",
+				Password: "test_password",
+			},
+			mockBehavior: func(repo *mocks.AuthService, body authHandler.LoginRequest) {
+				repo.EXPECT().Login(mock.Anything, body.Login, body.Password).Return("", domain.ErrInvalidCredentials).Once()
+			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantBody:       `{"status":"error","code":401,"message":"invalid credentials"}` + "\n",
+		},
+		{
+			name: "internal error",
+			body: authHandler.LoginRequest{
+				Login:    "test_login",
+				Password: "test_password",
+			},
+			mockBehavior: func(repo *mocks.AuthService, body authHandler.LoginRequest) {
+				repo.EXPECT().Login(mock.Anything, body.Login, body.Password).Return("", errors.New("internal error")).Once()
+			},
+			wantStatusCode: http.StatusInternalServerError,
+			wantBody:       `{"status":"error","code":500,"message":"failed to login"}` + "\n",
+		},
+	}
 
-		rec := httptest.NewRecorder()
-		req := testutils.NewJSONRequest(t, http.MethodPost, "/auth/login", reqBody)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			authService := mocks.NewAuthService(t)
+			tc.mockBehavior(authService, tc.body)
 
-		handler.HandleLogin(rec, req)
+			handler := authHandler.New(testutils.NewTestLogger(), authService)
+			rec := httptest.NewRecorder()
+			req := testutils.NewJSONRequest(t, http.MethodPost, "/auth/login", tc.body)
 
-		assert.Equal(t, http.StatusOK, rec.Code)
+			handler.HandleLogin(rec, req)
 
-		var resp authHandler.LoginResponse
-		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
-		assert.Equal(t, "valid_token", resp.Token)
-		mockSvc.AssertExpectations(t)
-	})
-
-	t.Run("invalid payload", func(t *testing.T) {
-		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewBufferString("invalid_json"))
-
-		handler.HandleLogin(rec, req)
-
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		assert.Contains(t, rec.Body.String(), "invalid body")
-	})
-
-	t.Run("wrong password", func(t *testing.T) {
-		reqBody := authHandler.LoginRequest{
-			Login:    "test_user",
-			Password: "wrong_password",
-		}
-		mockSvc.On("Login", mock.Anything, reqBody.Login, reqBody.Password).
-			Return("", domain.ErrInvalidCredentials).Once()
-
-		rec := httptest.NewRecorder()
-		req := testutils.NewJSONRequest(t, http.MethodPost, "/auth/login", reqBody)
-
-		handler.HandleLogin(rec, req)
-
-		assert.Equal(t, http.StatusUnauthorized, rec.Code)
-		assert.Contains(t, rec.Body.String(), "invalid credentials")
-		mockSvc.AssertExpectations(t)
-	})
-
-	t.Run("wrong login", func(t *testing.T) {
-		reqBody := authHandler.LoginRequest{
-			Login:    "wrong_user",
-			Password: "some_password",
-		}
-		mockSvc.On("Login", mock.Anything, reqBody.Login, reqBody.Password).
-			Return("", domain.ErrInvalidCredentials).Once()
-
-		rec := httptest.NewRecorder()
-		req := testutils.NewJSONRequest(t, http.MethodPost, "/auth/login", reqBody)
-
-		handler.HandleLogin(rec, req)
-
-		assert.Equal(t, http.StatusUnauthorized, rec.Code)
-		assert.Contains(t, rec.Body.String(), "invalid credentials")
-		mockSvc.AssertExpectations(t)
-	})
-
-	t.Run("error", func(t *testing.T) {
-		reqBody := authHandler.LoginRequest{
-			Login:    "test_user",
-			Password: "some_password",
-		}
-		mockSvc.On("Login", mock.Anything, reqBody.Login, reqBody.Password).
-			Return("", errors.New("unexpected error")).Once()
-
-		rec := httptest.NewRecorder()
-		req := testutils.NewJSONRequest(t, http.MethodPost, "/auth/login", reqBody)
-
-		handler.HandleLogin(rec, req)
-
-		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		assert.Contains(t, rec.Body.String(), "failed to login")
-		mockSvc.AssertExpectations(t)
-	})
-}
-
-type authServiceMock struct {
-	mock.Mock
-}
-
-func (m *authServiceMock) Login(ctx context.Context, login, password string) (string, error) {
-	args := m.Called(ctx, login, password)
-	return args.String(0), args.Error(1)
+			assert.Equal(t, tc.wantStatusCode, rec.Code)
+			assert.Equal(t, tc.wantBody, rec.Body.String())
+		})
+	}
 }

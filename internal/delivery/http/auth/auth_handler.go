@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -12,20 +11,20 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type Service interface {
+type AuthService interface {
 	Login(ctx context.Context, login, password string) (string, error)
 }
 
 type handler struct {
 	logger   *slog.Logger
 	validate *validator.Validate
-	svc      Service
+	authSvc  AuthService
 }
 
-func New(logger *slog.Logger, svc Service) *handler {
+func New(logger *slog.Logger, authSvc AuthService) *handler {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
-	return &handler{logger, validate, svc}
+	return &handler{logger, validate, authSvc}
 }
 
 func (h *handler) Handle(r *http.ServeMux) {
@@ -44,22 +43,18 @@ func (h *handler) Handle(r *http.ServeMux) {
 // @Failure      500    {object}  httpx.Response  "Внутренняя ошибка сервера"
 // @Router       /auth/login [post]
 func (h *handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	dto := new(LoginRequest)
-	if err := httpx.DecodeBody(r, dto); err != nil {
+	var dto LoginRequest
+	if err := httpx.DecodeBody(r, &dto); err != nil {
 		httpx.WriteError(w, "invalid body", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.validate.Struct(dto); err != nil {
-		if err, ok := err.(validator.ValidationErrors); ok {
-			httpx.WriteError(w, fmt.Sprintf("invalid request: %v", err), http.StatusBadRequest)
-			return
-		}
-		httpx.WriteError(w, "failed to validate request", http.StatusInternalServerError)
+		httpx.WriteError(w, "invalid payload", http.StatusBadRequest)
 		return
 	}
 
-	token, err := h.svc.Login(r.Context(), dto.Login, dto.Password)
+	token, err := h.authSvc.Login(r.Context(), dto.Login, dto.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidCredentials) {
 			httpx.WriteError(w, "invalid credentials", http.StatusUnauthorized)

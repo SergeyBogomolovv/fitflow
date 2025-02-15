@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
-	"gopkg.in/telebot.v4"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -57,13 +56,13 @@ func (h *handler) notifySubscribers(ctx context.Context, lvl domain.UserLvl) {
 	}
 }
 
-func (h *handler) sendPost(subscribers []int64, post *domain.Post) int {
+func (h *handler) sendPost(subscribers []int64, post domain.Post) int {
 	const op = "telegram.sendPost"
 	logger := h.logger.With(slog.String("op", op))
 
 	count := 0
 	for _, id := range subscribers {
-		if err := h.sendMessage(telebot.ChatID(id), post); err != nil {
+		if err := h.sendMessage(tele.ChatID(id), post); err != nil {
 			logger.Error("failed to send post", "subscriber_id", id, "error", err)
 		} else {
 			count++
@@ -72,7 +71,7 @@ func (h *handler) sendPost(subscribers []int64, post *domain.Post) int {
 	return count
 }
 
-func (h *handler) sendMessage(chatID telebot.ChatID, post *domain.Post) error {
+func (h *handler) sendMessage(chatID tele.ChatID, post domain.Post) error {
 	if len(post.Images) > 0 {
 		var album tele.Album
 		for _, url := range post.Images {

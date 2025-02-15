@@ -18,7 +18,7 @@ type UserService interface {
 }
 
 type PostService interface {
-	PickLatest(ctx context.Context, audience domain.UserLvl) (*domain.Post, error)
+	PickLatest(ctx context.Context, audience domain.UserLvl) (domain.Post, error)
 	MarkAsPosted(ctx context.Context, id int64) error
 }
 

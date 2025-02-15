@@ -5,86 +5,115 @@ import (
 	"testing"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
-	postRepo "github.com/SergeyBogomolovv/fitflow/internal/repo/post"
-	"github.com/SergeyBogomolovv/fitflow/internal/service/post"
+	postSvc "github.com/SergeyBogomolovv/fitflow/internal/service/post"
+	"github.com/SergeyBogomolovv/fitflow/internal/service/post/mocks"
 	testutils "github.com/SergeyBogomolovv/fitflow/pkg/test_utils"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestPostService_PickLatest(t *testing.T) {
-	ctx := context.Background()
-	mockRepo := new(mockPostRepo)
-	svc := post.New(testutils.NewTestLogger(), mockRepo)
+	type args struct {
+		ctx      context.Context
+		audience domain.UserLvl
+	}
 
-	t.Run("success", func(t *testing.T) {
-		expected := &domain.Post{Content: "content"}
-		mockRepo.On("LatestPostByAudience", ctx, domain.UserLvlDefault).Return(expected, nil).Once()
-		result, err := svc.PickLatest(ctx, domain.UserLvlDefault)
-		assert.NoError(t, err)
-		assert.Equal(t, expected.Content, result.Content)
-		mockRepo.AssertExpectations(t)
-	})
+	type MockBehavior func(repo *mocks.PostRepo, args args)
 
-	t.Run("no posts", func(t *testing.T) {
-		mockRepo.On("LatestPostByAudience", ctx, domain.UserLvlDefault).Return((*domain.Post)(nil), domain.ErrNoPosts).Once()
-		result, err := svc.PickLatest(ctx, domain.UserLvlDefault)
-		assert.ErrorIs(t, err, domain.ErrNoPosts)
-		assert.Nil(t, result)
-		mockRepo.AssertExpectations(t)
-	})
+	testCases := []struct {
+		name         string
+		args         args
+		mockBehavior MockBehavior
+		want         domain.Post
+		wantErr      error
+	}{
+		{
+			name: "success",
+			args: args{
+				ctx:      context.Background(),
+				audience: domain.UserLvlBeginner,
+			},
+			mockBehavior: func(repo *mocks.PostRepo, args args) {
+				repo.EXPECT().LatestPostByAudience(args.ctx, args.audience).Return(domain.Post{ID: 1}, nil).Once()
+			},
+			want: domain.Post{ID: 1},
+		},
+		{
+			name: "no posts",
+			args: args{
+				ctx:      context.Background(),
+				audience: domain.UserLvlBeginner,
+			},
+			mockBehavior: func(repo *mocks.PostRepo, args args) {
+				repo.EXPECT().LatestPostByAudience(args.ctx, args.audience).Return(domain.Post{}, domain.ErrPostNotFound).Once()
+			},
+			wantErr: domain.ErrPostNotFound,
+		},
+	}
 
-	t.Run("repo error", func(t *testing.T) {
-		mockRepo.On("LatestPostByAudience", ctx, domain.UserLvlDefault).Return((*domain.Post)(nil), assert.AnError).Once()
-		result, err := svc.PickLatest(ctx, domain.UserLvlDefault)
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		mockRepo.AssertExpectations(t)
-	})
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := mocks.NewPostRepo(t)
+			tc.mockBehavior(repo, tc.args)
+
+			svc := postSvc.New(testutils.NewTestLogger(), repo)
+			got, err := svc.PickLatest(tc.args.ctx, tc.args.audience)
+			if tc.wantErr != nil {
+				assert.ErrorIs(t, err, tc.wantErr)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }
 
 func TestPostService_MarkAsPosted(t *testing.T) {
-	ctx := context.Background()
-	mockRepo := new(mockPostRepo)
-	svc := post.New(testutils.NewTestLogger(), mockRepo)
+	type args struct {
+		ctx context.Context
+		id  int64
+	}
 
-	t.Run("succes", func(t *testing.T) {
-		mockRepo.On("MarkAsPosted", ctx, int64(1)).Return(nil).Once()
-		err := svc.MarkAsPosted(ctx, int64(1))
-		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+	type MockBehavior func(repo *mocks.PostRepo, args args)
 
-	t.Run("repo error", func(t *testing.T) {
-		mockRepo.On("MarkAsPosted", ctx, int64(1)).Return(assert.AnError).Once()
-		err := svc.MarkAsPosted(ctx, int64(1))
-		assert.Error(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+	testCases := []struct {
+		name         string
+		args         args
+		mockBehavior MockBehavior
+		want         error
+	}{
+		{
+			name: "success",
+			args: args{
+				ctx: context.Background(),
+				id:  1,
+			},
+			mockBehavior: func(repo *mocks.PostRepo, args args) {
+				repo.EXPECT().MarkAsPosted(args.ctx, args.id).Return(nil).Once()
+			},
+			want: nil,
+		},
+		{
+			name: "post not found",
+			args: args{
+				ctx: context.Background(),
+				id:  1,
+			},
+			mockBehavior: func(repo *mocks.PostRepo, args args) {
+				repo.EXPECT().MarkAsPosted(args.ctx, args.id).Return(domain.ErrPostNotFound).Once()
+			},
+			want: domain.ErrPostNotFound,
+		},
+	}
 
-	t.Run("post not found", func(t *testing.T) {
-		mockRepo.On("MarkAsPosted", ctx, int64(1)).Return(domain.ErrPostNotFound).Once()
-		err := svc.MarkAsPosted(ctx, int64(1))
-		assert.ErrorIs(t, err, domain.ErrPostNotFound)
-		mockRepo.AssertExpectations(t)
-	})
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := mocks.NewPostRepo(t)
+			tc.mockBehavior(repo, tc.args)
+			svc := postSvc.New(testutils.NewTestLogger(), repo)
 
-type mockPostRepo struct {
-	mock.Mock
-}
-
-func (r *mockPostRepo) SavePost(ctx context.Context, post postRepo.CreatePostInput) error {
-	args := r.Called(ctx, post)
-	return args.Error(0)
-}
-
-func (r *mockPostRepo) MarkAsPosted(ctx context.Context, id int64) error {
-	args := r.Called(ctx, id)
-	return args.Error(0)
-}
-
-func (r *mockPostRepo) LatestPostByAudience(ctx context.Context, audience domain.UserLvl) (*domain.Post, error) {
-	args := r.Called(ctx, audience)
-	return args.Get(0).(*domain.Post), args.Error(1)
+			got := svc.MarkAsPosted(tc.args.ctx, tc.args.id)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }

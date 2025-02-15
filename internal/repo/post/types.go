@@ -1,19 +1,20 @@
 package post
 
 import (
+	"context"
 	"time"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	"github.com/lib/pq"
 )
 
-type CreatePostInput struct {
+type SavePostInput struct {
 	Content  string
 	Audience domain.UserLvl
 	Images   []string
 }
 
-type post struct {
+type Post struct {
 	ID        int64          `db:"post_id"`
 	Content   string         `db:"content"`
 	Audience  domain.UserLvl `db:"audience"`
@@ -22,8 +23,8 @@ type post struct {
 	Posted    bool           `db:"posted"`
 }
 
-func (p post) ToDomain() *domain.Post {
-	return &domain.Post{
+func (p Post) ToDomain() domain.Post {
+	return domain.Post{
 		ID:       p.ID,
 		Content:  p.Content,
 		Audience: p.Audience,
@@ -31,10 +32,8 @@ func (p post) ToDomain() *domain.Post {
 	}
 }
 
-func mapPosts(posts []post) []domain.Post {
-	res := make([]domain.Post, 0, len(posts))
-	for _, p := range posts {
-		res = append(res, *p.ToDomain())
-	}
-	return res
+type PostRepo interface {
+	LatestPostByAudience(ctx context.Context, audience domain.UserLvl) (domain.Post, error)
+	MarkAsPosted(ctx context.Context, id int64) error
+	SavePost(ctx context.Context, in SavePostInput) error
 }

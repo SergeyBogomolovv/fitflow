@@ -11,12 +11,12 @@ import (
 )
 
 type AdminRepo interface {
-	AdminByLogin(ctx context.Context, login string) (*domain.Admin, error)
+	AdminByLogin(ctx context.Context, login string) (domain.Admin, error)
 }
 
 type service struct {
 	logger    *slog.Logger
-	repo      AdminRepo
+	adminRepo AdminRepo
 	jwtSecret []byte
 	jwtTTL    time.Duration
 }
@@ -29,11 +29,9 @@ func (s *service) Login(ctx context.Context, login, password string) (string, er
 	const op = "auth.Login"
 	logger := s.logger.With(slog.String("op", op), slog.String("login", login))
 
-	logger.Debug("logging in")
-	admin, err := s.repo.AdminByLogin(ctx, login)
+	admin, err := s.adminRepo.AdminByLogin(ctx, login)
 	if err != nil {
 		if errors.Is(err, domain.ErrAdminNotFound) {
-			logger.Debug("invalid credentials")
 			return "", domain.ErrInvalidCredentials
 		}
 		logger.Error("failed to get admin", "error", err)
@@ -41,7 +39,6 @@ func (s *service) Login(ctx context.Context, login, password string) (string, er
 	}
 
 	if !auth.ComparePassword(admin.Password, password) {
-		logger.Debug("invalid credentials")
 		return "", domain.ErrInvalidCredentials
 	}
 

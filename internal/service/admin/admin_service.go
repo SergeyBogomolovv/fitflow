@@ -10,7 +10,7 @@ import (
 )
 
 type AdminRepo interface {
-	AdminByLogin(ctx context.Context, login string) (*domain.Admin, error)
+	AdminByLogin(ctx context.Context, login string) (domain.Admin, error)
 	AdminExists(ctx context.Context, login string) (bool, error)
 	SaveAdmin(ctx context.Context, login string, password []byte) error
 	UpdatePassword(ctx context.Context, login string, password []byte) error
@@ -18,26 +18,24 @@ type AdminRepo interface {
 }
 
 type adminService struct {
-	logger *slog.Logger
-	repo   AdminRepo
+	logger    *slog.Logger
+	adminRepo AdminRepo
 }
 
-func New(logger *slog.Logger, repo AdminRepo) *adminService {
-	return &adminService{logger, repo}
+func New(logger *slog.Logger, adminRepo AdminRepo) *adminService {
+	return &adminService{logger, adminRepo}
 }
 
 func (s *adminService) CreateAdmin(ctx context.Context, login, password string) error {
 	const op = "admin.CreateAdmin"
 	logger := s.logger.With(slog.String("op", op), slog.String("login", login))
-	logger.Debug("creating admin")
 
-	exists, err := s.repo.AdminExists(ctx, login)
+	exists, err := s.adminRepo.AdminExists(ctx, login)
 	if err != nil {
 		logger.Error("failed to check admin exists", "error", err)
 		return err
 	}
 	if exists {
-		logger.Debug("admin already exists")
 		return domain.ErrAdminAlreadyExists
 	}
 
@@ -46,24 +44,22 @@ func (s *adminService) CreateAdmin(ctx context.Context, login, password string) 
 		logger.Error("failed to hash password", "error", err)
 		return err
 	}
-	if err := s.repo.SaveAdmin(ctx, login, hash); err != nil {
+	if err := s.adminRepo.SaveAdmin(ctx, login, hash); err != nil {
 		logger.Error("failed to save admin", "error", err)
 		return err
 	}
-	logger.Info("admin created")
 
+	logger.Info("admin created")
 	return nil
 }
 
 func (s *adminService) UpdatePassword(ctx context.Context, login, oldPass, newPass string) error {
 	const op = "admin.UpdatePassword"
 	logger := s.logger.With(slog.String("op", op), slog.String("login", login))
-	logger.Debug("updating password")
 
-	admin, err := s.repo.AdminByLogin(ctx, login)
+	admin, err := s.adminRepo.AdminByLogin(ctx, login)
 	if err != nil {
 		if errors.Is(err, domain.ErrAdminNotFound) {
-			logger.Debug("admin not exists")
 			return domain.ErrInvalidCredentials
 		}
 		logger.Error("failed to get admin", "error", err)
@@ -71,7 +67,6 @@ func (s *adminService) UpdatePassword(ctx context.Context, login, oldPass, newPa
 	}
 
 	if !auth.ComparePassword(admin.Password, oldPass) {
-		logger.Debug("invalid old password")
 		return domain.ErrInvalidCredentials
 	}
 
@@ -80,27 +75,27 @@ func (s *adminService) UpdatePassword(ctx context.Context, login, oldPass, newPa
 		logger.Error("failed to hash password", "error", err)
 		return err
 	}
-	if err := s.repo.UpdatePassword(ctx, login, hash); err != nil {
+	if err := s.adminRepo.UpdatePassword(ctx, login, hash); err != nil {
 		logger.Error("failed to update password", "error", err)
 		return err
 	}
-	logger.Info("password updated")
+
+	logger.Info("admin password updated")
 	return nil
 }
 
 func (s *adminService) RemoveAdmin(ctx context.Context, login string) error {
 	const op = "admin.RemoveAdmin"
 	logger := s.logger.With(slog.String("op", op), slog.String("login", login))
-	logger.Debug("removing admin")
 
-	if err := s.repo.DeleteAdmin(ctx, login); err != nil {
+	if err := s.adminRepo.DeleteAdmin(ctx, login); err != nil {
 		if errors.Is(err, domain.ErrAdminNotFound) {
-			logger.Debug("admin not exists")
 			return domain.ErrAdminNotFound
 		}
 		logger.Error("failed to remove admin", "error", err)
 		return err
 	}
+
 	logger.Info("admin removed")
 	return nil
 }
