@@ -3,7 +3,6 @@ package telegram
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"math"
 	"slices"
 
@@ -12,15 +11,11 @@ import (
 )
 
 func (h *handler) handleStartTest(c tele.Context) error {
-	const op = "telegram.handleStartTest"
 	userID := c.Sender().ID
-
-	logger := h.logger.With(slog.String("op", op), slog.Int64("id", userID))
-
 	ctx := context.TODO()
 
 	if err := h.users.EnsureUserExists(ctx, userID); err != nil {
-		logger.Error("failed to save user")
+		return c.Send("Произошла непредвиденная ошибка.")
 	}
 
 	state := &UserTestState{CurrentQuestion: 0, Score: 0}
@@ -70,9 +65,8 @@ func (h *handler) handleTestAnswer(c tele.Context, state *UserTestState) error {
 }
 
 func (h *handler) finishTest(c tele.Context, state *UserTestState) error {
-	const op = "telegram.handleStartTest"
+	ctx := context.TODO()
 	userID := c.Sender().ID
-	logger := h.logger.With(slog.String("op", op), slog.Int64("id", userID))
 
 	var levelRu string
 	var lvl domain.UserLvl
@@ -92,8 +86,8 @@ func (h *handler) finishTest(c tele.Context, state *UserTestState) error {
 		levelRu = "Не определен"
 	}
 
-	if err := h.users.UpdateUserLvl(context.TODO(), userID, lvl); err != nil {
-		logger.Error("failed to update user level")
+	if err := h.users.UpdateUserLvl(ctx, userID, lvl); err != nil {
+		return c.Send("Произошла ошибка при обновлении уровня.", defaultKeyboard)
 	}
 
 	h.state.Delete(userID)

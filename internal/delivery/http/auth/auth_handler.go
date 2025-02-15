@@ -27,7 +27,7 @@ func New(logger *slog.Logger, authSvc AuthService) *handler {
 	return &handler{logger, validate, authSvc}
 }
 
-func (h *handler) Handle(r *http.ServeMux) {
+func (h *handler) Init(r *http.ServeMux) {
 	r.HandleFunc("/auth/login", h.HandleLogin)
 }
 

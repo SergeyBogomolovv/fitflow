@@ -27,17 +27,24 @@ func main() {
 	conf := config.MustNewConfig(*confPath)
 
 	logger := logger.MustNew(conf.Log.Level, os.Stdout)
+
 	db := db.MustNew(conf.PG.URL)
+	logger.Info("database connected")
+
 	bot := bot.MustNew(conf.TG.Token)
+	logger.Info("telegram connected")
 
 	userRepo := userRepo.New(db)
-	userSvc := userSvc.New(logger, userRepo)
-
 	postsRepo := postRepo.New(db)
+	logger.Info("init repositories")
+
+	userSvc := userSvc.New(logger, userRepo)
 	postSvc := postSvc.New(logger, postsRepo)
+	logger.Info("init services")
 
 	telegram := telegram.New(logger, bot, postSvc, userSvc)
 	telegram.Init()
+	logger.Info("init handlers")
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -47,8 +54,6 @@ func main() {
 	go func() {
 		defer wg.Done()
 		<-ctx.Done()
-		stopCtx := telegram.StopScheduler()
-		<-stopCtx.Done()
 		bot.Stop()
 		db.Close()
 		logger.Info("bot stopped")

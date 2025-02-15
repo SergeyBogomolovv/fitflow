@@ -11,5 +11,5 @@ logger:
   level: debug
 
 telegram:
-  level_spec: '*/10 * * * * *'
-  broadcast_spec: '*/10 * * * * *'
+  level_spec: '@every 5s'
+  broadcast_spec: '@every 5s'

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
+	"github.com/robfig/cron/v3"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -13,7 +14,9 @@ func (h *handler) RunScheduler(ctx context.Context, broadcastSpec, levelSpec str
 	logger := h.logger.With(slog.String("op", op))
 	logger.Info("starting posts scheduler")
 
-	broadcastID, err := h.cron.AddFunc(broadcastSpec, func() {
+	cron := cron.New(cron.WithSeconds())
+
+	broadcastID, err := cron.AddFunc(broadcastSpec, func() {
 		h.notifySubscribers(ctx, domain.UserLvlDefault)
 	})
 	if err != nil {
@@ -21,7 +24,7 @@ func (h *handler) RunScheduler(ctx context.Context, broadcastSpec, levelSpec str
 		return
 	}
 
-	lvlID, err := h.cron.AddFunc(levelSpec, func() {
+	lvlID, err := cron.AddFunc(levelSpec, func() {
 		h.notifySubscribers(ctx, domain.UserLvlBeginner)
 		h.notifySubscribers(ctx, domain.UserLvlIntermediate)
 		h.notifySubscribers(ctx, domain.UserLvlAdvanced)
@@ -31,11 +34,7 @@ func (h *handler) RunScheduler(ctx context.Context, broadcastSpec, levelSpec str
 		return
 	}
 
-	h.cron.Start()
-}
-
-func (h *handler) StopScheduler() context.Context {
-	return h.cron.Stop()
+	cron.Start()
 }
 
 func (h *handler) notifySubscribers(ctx context.Context, lvl domain.UserLvl) {
