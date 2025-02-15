@@ -11,23 +11,25 @@ import (
 )
 
 type userRepo struct {
+	qb sq.StatementBuilderType
 	db *sqlx.DB
 }
 
-func New(db *sqlx.DB) *userRepo {
-	return &userRepo{db: db}
+func New(db *sqlx.DB) UserRepo {
+	qb := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	return &userRepo{db: db, qb: qb}
 }
 
 func (r *userRepo) SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) error {
-	query := `INSERT INTO users (user_id, lvl) VALUES ($1, $2)`
-	_, err := r.db.ExecContext(ctx, query, id, lvl)
+	query, args := r.qb.Insert("users").Columns("user_id", "lvl").Values(id, lvl).MustSql()
+	_, err := r.db.ExecContext(ctx, query, args...)
 	return err
 }
 
 func (r *userRepo) UserExists(ctx context.Context, id int64) (bool, error) {
 	var exists bool
-	query := `SELECT TRUE FROM users WHERE user_id = $1`
-	if err := r.db.GetContext(ctx, &exists, query, id); err != nil {
+	query, args := r.qb.Select("TRUE").From("users").Where(sq.Eq{"user_id": id}).MustSql()
+	if err := r.db.GetContext(ctx, &exists, query, args...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
@@ -37,8 +39,8 @@ func (r *userRepo) UserExists(ctx context.Context, id int64) (bool, error) {
 }
 
 func (r *userRepo) UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error {
-	query := `UPDATE users SET subscribed = $1 WHERE user_id = $2 `
-	res, err := r.db.ExecContext(ctx, query, subscribed, id)
+	query, args := r.qb.Update("users").Set("subscribed", subscribed).Where(sq.Eq{"user_id": id}).MustSql()
+	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -53,8 +55,8 @@ func (r *userRepo) UpdateSubscribed(ctx context.Context, id int64, subscribed bo
 }
 
 func (r *userRepo) UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error {
-	query := `UPDATE users SET lvl = $1 WHERE user_id = $2 `
-	res, err := r.db.ExecContext(ctx, query, lvl, id)
+	query, args := r.qb.Update("users").Set("lvl", lvl).Where(sq.Eq{"user_id": id}).MustSql()
+	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -69,15 +71,12 @@ func (r *userRepo) UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserL
 }
 
 func (r *userRepo) Subscribers(ctx context.Context, lvl domain.UserLvl, all bool) ([]domain.User, error) {
-	var entities []user
-	builder := sq.Select("user_id", "lvl").From("users").Where("subscribed = true")
+	var entities []User
+	q := r.qb.Select("user_id", "lvl").From("users").Where(sq.Eq{"subscribed": true})
 	if !all {
-		builder = builder.Where("lvl = $1", lvl)
+		q = q.Where(sq.Eq{"lvl": lvl})
 	}
-	query, args, err := builder.ToSql()
-	if err != nil {
-		return nil, err
-	}
+	query, args := q.MustSql()
 
 	if err := r.db.SelectContext(ctx, &entities, query, args...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -85,5 +84,5 @@ func (r *userRepo) Subscribers(ctx context.Context, lvl domain.UserLvl, all bool
 		}
 		return nil, err
 	}
-	return mapUsers(entities), nil
+	return mapUsersToDomain(entities), nil
 }

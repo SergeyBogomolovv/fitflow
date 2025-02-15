@@ -11,7 +11,7 @@ import (
 )
 
 type UserService interface {
-	SaveUser(ctx context.Context, id int64) error
+	EnsureUserExists(ctx context.Context, id int64) error
 	UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error
 	UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error
 	SubscribersIds(ctx context.Context, lvl domain.UserLvl) ([]int64, error)
@@ -53,7 +53,7 @@ func (h *handler) handleStart(c tele.Context) error {
 
 	logger := h.logger.With(slog.String("op", op), slog.Int64("id", userID))
 
-	if err := h.users.SaveUser(context.TODO(), userID); err != nil {
+	if err := h.users.EnsureUserExists(context.TODO(), userID); err != nil {
 		logger.Error("failed to save user")
 	}
 	return c.Send(startMessage, defaultKeyboard, tele.ModeMarkdown)
@@ -86,7 +86,7 @@ func (h *handler) handleSubscribe(c tele.Context) error {
 	logger := h.logger.With(slog.String("op", op), slog.Int64("id", userID))
 
 	ctx := context.TODO()
-	if err := h.users.SaveUser(ctx, userID); err != nil {
+	if err := h.users.EnsureUserExists(ctx, userID); err != nil {
 		logger.Error("failed to save user")
 	}
 
@@ -104,7 +104,7 @@ func (h *handler) handleUnsubscribe(c tele.Context) error {
 	logger := h.logger.With(slog.String("op", op), slog.Int64("id", userID))
 
 	ctx := context.TODO()
-	if err := h.users.SaveUser(ctx, userID); err != nil {
+	if err := h.users.EnsureUserExists(ctx, userID); err != nil {
 		logger.Error("failed to save user")
 	}
 

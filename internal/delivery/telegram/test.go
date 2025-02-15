@@ -19,7 +19,7 @@ func (h *handler) handleStartTest(c tele.Context) error {
 
 	ctx := context.TODO()
 
-	if err := h.users.SaveUser(ctx, userID); err != nil {
+	if err := h.users.EnsureUserExists(ctx, userID); err != nil {
 		logger.Error("failed to save user")
 	}
 

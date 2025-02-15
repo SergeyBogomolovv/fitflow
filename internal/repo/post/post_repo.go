@@ -17,7 +17,7 @@ type postRepo struct {
 	db *sqlx.DB
 }
 
-func New(db *sqlx.DB) *postRepo {
+func New(db *sqlx.DB) PostRepo {
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	return &postRepo{db: db, qb: qb}
 }

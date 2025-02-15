@@ -6,140 +6,266 @@ import (
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	userSvc "github.com/SergeyBogomolovv/fitflow/internal/service/user"
+	"github.com/SergeyBogomolovv/fitflow/internal/service/user/mocks"
 	testutils "github.com/SergeyBogomolovv/fitflow/pkg/test_utils"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-func TestUserService_SaveUser(t *testing.T) {
-	mockRepo := new(mockUserRepo)
-	svc := userSvc.New(testutils.NewTestLogger(), mockRepo)
-	ctx := context.Background()
-	userId := int64(1)
+func TestUserService_EnsureUserExists(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		id  int64
+	}
 
-	t.Run("success", func(t *testing.T) {
-		mockRepo.On("UserExists", ctx, userId).Return(false, nil).Once()
-		mockRepo.On("SaveUser", ctx, userId, domain.UserLvlDefault).Return(nil).Once()
-		err := svc.SaveUser(ctx, userId)
-		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+	type MockBehavior func(repo *mocks.UserRepo, args args)
 
-	t.Run("user already exists", func(t *testing.T) {
-		mockRepo.On("UserExists", ctx, userId).Return(true, nil).Once()
-		err := svc.SaveUser(ctx, userId)
-		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+	testCases := []struct {
+		name         string
+		args         args
+		mockBehavior MockBehavior
+		want         error
+	}{
+		{
+			name: "not exists, need to save",
+			args: args{
+				ctx: context.Background(),
+				id:  1,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().UserExists(args.ctx, args.id).Return(false, nil).Once()
+				repo.EXPECT().SaveUser(args.ctx, args.id, domain.UserLvlDefault).Return(nil).Once()
+			},
+			want: nil,
+		},
+		{
+			name: "already exists",
+			args: args{
+				ctx: context.Background(),
+				id:  1,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().UserExists(args.ctx, args.id).Return(true, nil).Once()
+			},
+			want: nil,
+		},
+	}
 
-	t.Run("repo error", func(t *testing.T) {
-		mockRepo.On("UserExists", ctx, userId).Return(false, nil).Once()
-		mockRepo.On("SaveUser", ctx, userId, domain.UserLvlDefault).Return(assert.AnError).Once()
-		err := svc.SaveUser(ctx, userId)
-		assert.Error(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := mocks.NewUserRepo(t)
+			tc.mockBehavior(repo, tc.args)
+			svc := userSvc.New(testutils.NewTestLogger(), repo)
+			err := svc.EnsureUserExists(tc.args.ctx, tc.args.id)
+
+			if tc.want == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, tc.want)
+		})
+	}
 }
 
 func TestUserService_UpdateSubscribed(t *testing.T) {
-	mockRepo := new(mockUserRepo)
-	svc := userSvc.New(testutils.NewTestLogger(), mockRepo)
-	ctx := context.Background()
-	userId := int64(1)
+	type args struct {
+		ctx        context.Context
+		id         int64
+		subscribed bool
+	}
 
-	t.Run("success", func(t *testing.T) {
-		mockRepo.On("UpdateSubscribed", ctx, userId, true).Return(nil).Once()
-		err := svc.UpdateSubscribed(ctx, userId, true)
-		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+	type MockBehavior func(repo *mocks.UserRepo, args args)
 
-	t.Run("user not found", func(t *testing.T) {
-		mockRepo.On("UpdateSubscribed", ctx, userId, false).Return(domain.ErrUserNotFound).Once()
-		err := svc.UpdateSubscribed(ctx, userId, false)
-		assert.ErrorIs(t, err, domain.ErrUserNotFound)
-		mockRepo.AssertExpectations(t)
-	})
+	testCases := []struct {
+		name         string
+		args         args
+		mockBehavior MockBehavior
+		want         error
+	}{
+		{
+			name: "success",
+			args: args{
+				ctx:        context.Background(),
+				id:         1,
+				subscribed: true,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().UpdateSubscribed(args.ctx, args.id, args.subscribed).Return(nil).Once()
+			},
+			want: nil,
+		},
+		{
+			name: "user not found",
+			args: args{
+				ctx:        context.Background(),
+				id:         1,
+				subscribed: true,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().UpdateSubscribed(args.ctx, args.id, args.subscribed).Return(domain.ErrUserNotFound).Once()
+			},
+			want: domain.ErrUserNotFound,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := mocks.NewUserRepo(t)
+			tc.mockBehavior(repo, tc.args)
+			svc := userSvc.New(testutils.NewTestLogger(), repo)
+			err := svc.UpdateSubscribed(tc.args.ctx, tc.args.id, tc.args.subscribed)
+
+			if tc.want == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, tc.want)
+		})
+	}
 }
 
 func TestUserService_UpdateUserLvl(t *testing.T) {
-	mockRepo := new(mockUserRepo)
-	svc := userSvc.New(testutils.NewTestLogger(), mockRepo)
-	ctx := context.Background()
-	userId := int64(1)
-	newLvl := domain.UserLvlAdvanced
+	type args struct {
+		ctx context.Context
+		id  int64
+		lvl domain.UserLvl
+	}
 
-	t.Run("success", func(t *testing.T) {
-		mockRepo.On("UpdateUserLvl", ctx, userId, newLvl).Return(nil).Once()
-		err := svc.UpdateUserLvl(ctx, userId, newLvl)
-		assert.NoError(t, err)
-		mockRepo.AssertExpectations(t)
-	})
+	type MockBehavior func(repo *mocks.UserRepo, args args)
 
-	t.Run("user not found", func(t *testing.T) {
-		mockRepo.On("UpdateUserLvl", ctx, userId, newLvl).Return(domain.ErrUserNotFound).Once()
-		err := svc.UpdateUserLvl(ctx, userId, newLvl)
-		assert.ErrorIs(t, err, domain.ErrUserNotFound)
-		mockRepo.AssertExpectations(t)
-	})
+	testCases := []struct {
+		name         string
+		args         args
+		mockBehavior MockBehavior
+		want         error
+	}{
+		{
+			name: "success",
+			args: args{
+				ctx: context.Background(),
+				id:  1,
+				lvl: domain.UserLvlBeginner,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().UpdateUserLvl(args.ctx, args.id, args.lvl).Return(nil).Once()
+			},
+			want: nil,
+		},
+		{
+			name: "user not found",
+			args: args{
+				ctx: context.Background(),
+				id:  1,
+				lvl: domain.UserLvlBeginner,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().UpdateUserLvl(args.ctx, args.id, args.lvl).Return(domain.ErrUserNotFound).Once()
+			},
+			want: domain.ErrUserNotFound,
+		},
+		{
+			name: "error",
+			args: args{
+				ctx: context.Background(),
+				id:  1,
+				lvl: domain.UserLvlBeginner,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().UpdateUserLvl(args.ctx, args.id, args.lvl).Return(assert.AnError).Once()
+			},
+			want: assert.AnError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := mocks.NewUserRepo(t)
+			tc.mockBehavior(repo, tc.args)
+			svc := userSvc.New(testutils.NewTestLogger(), repo)
+			err := svc.UpdateUserLvl(tc.args.ctx, tc.args.id, tc.args.lvl)
+
+			if tc.want == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, tc.want)
+		})
+	}
 }
 
 func TestUserService_SubscribersIds(t *testing.T) {
-	mockRepo := new(mockUserRepo)
-	svc := userSvc.New(testutils.NewTestLogger(), mockRepo)
-	ctx := context.Background()
-	users := []domain.User{{ID: 1}, {ID: 2}, {ID: 3}}
+	type args struct {
+		ctx context.Context
+		lvl domain.UserLvl
+	}
 
-	t.Run("success", func(t *testing.T) {
-		mockRepo.On("Subscribers", ctx, domain.UserLvlBeginner, false).Return(users, nil).Once()
-		ids, err := svc.SubscribersIds(ctx, domain.UserLvlBeginner)
-		assert.NoError(t, err)
-		assert.ElementsMatch(t, []int64{1, 2, 3}, ids)
-		mockRepo.AssertExpectations(t)
-	})
+	type MockBehavior func(repo *mocks.UserRepo, args args)
 
-	t.Run("all subscribers", func(t *testing.T) {
-		mockRepo.On("Subscribers", ctx, domain.UserLvlDefault, true).Return(users, nil).Once()
-		ids, err := svc.SubscribersIds(ctx, domain.UserLvlDefault)
-		assert.NoError(t, err)
-		assert.ElementsMatch(t, []int64{1, 2, 3}, ids)
-		mockRepo.AssertExpectations(t)
-	})
+	testCases := []struct {
+		name         string
+		args         args
+		mockBehavior MockBehavior
+		want         []int64
+		wantErr      error
+	}{
+		{
+			name: "default lvl",
+			args: args{
+				ctx: context.Background(),
+				lvl: domain.UserLvlDefault,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().Subscribers(args.ctx, args.lvl, true).Return([]domain.User{{ID: 1}}, nil).Once()
+			},
+			want: []int64{1},
+		},
+		{
+			name: "beginner lvl",
+			args: args{
+				ctx: context.Background(),
+				lvl: domain.UserLvlBeginner,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().Subscribers(args.ctx, args.lvl, false).Return([]domain.User{{ID: 1}}, nil).Once()
+			},
+			want: []int64{1},
+		},
+		{
+			name: "no subscribers",
+			args: args{
+				ctx: context.Background(),
+				lvl: domain.UserLvlBeginner,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().Subscribers(args.ctx, args.lvl, false).Return([]domain.User{}, nil).Once()
+			},
+			want: []int64{},
+		},
+		{
+			name: "error",
+			args: args{
+				ctx: context.Background(),
+				lvl: domain.UserLvlBeginner,
+			},
+			mockBehavior: func(repo *mocks.UserRepo, args args) {
+				repo.EXPECT().Subscribers(args.ctx, args.lvl, false).Return([]domain.User{}, assert.AnError).Once()
+			},
+			wantErr: assert.AnError,
+		},
+	}
 
-	t.Run("repo error", func(t *testing.T) {
-		mockRepo.On("Subscribers", ctx, domain.UserLvlDefault, true).Return(([]domain.User)(nil), assert.AnError).Once()
-		ids, err := svc.SubscribersIds(ctx, domain.UserLvlDefault)
-		assert.Error(t, err)
-		assert.Nil(t, ids)
-		mockRepo.AssertExpectations(t)
-	})
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := mocks.NewUserRepo(t)
+			tc.mockBehavior(repo, tc.args)
+			svc := userSvc.New(testutils.NewTestLogger(), repo)
+			got, err := svc.SubscribersIds(tc.args.ctx, tc.args.lvl)
 
-type mockUserRepo struct {
-	mock.Mock
-}
-
-func (m *mockUserRepo) SaveUser(ctx context.Context, id int64, lvl domain.UserLvl) error {
-	args := m.Called(ctx, id, lvl)
-	return args.Error(0)
-}
-
-func (m *mockUserRepo) UpdateSubscribed(ctx context.Context, id int64, subscribed bool) error {
-	args := m.Called(ctx, id, subscribed)
-	return args.Error(0)
-}
-
-func (m *mockUserRepo) UpdateUserLvl(ctx context.Context, id int64, lvl domain.UserLvl) error {
-	args := m.Called(ctx, id, lvl)
-	return args.Error(0)
-}
-
-func (m *mockUserRepo) Subscribers(ctx context.Context, lvl domain.UserLvl, all bool) ([]domain.User, error) {
-	args := m.Called(ctx, lvl, all)
-	return args.Get(0).([]domain.User), args.Error(1)
-}
-
-func (m *mockUserRepo) UserExists(ctx context.Context, id int64) (bool, error) {
-	args := m.Called(ctx, id)
-	return args.Bool(0), args.Error(1)
+			if tc.wantErr == nil {
+				assert.NoError(t, err)
+				assert.ElementsMatch(t, tc.want, got)
+				return
+			}
+			assert.ErrorIs(t, err, tc.wantErr)
+		})
+	}
 }

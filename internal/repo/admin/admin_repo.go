@@ -16,7 +16,7 @@ type adminRepo struct {
 	db *sqlx.DB
 }
 
-func New(db *sqlx.DB) *adminRepo {
+func New(db *sqlx.DB) AdminRepo {
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	return &adminRepo{db: db, qb: qb}
 }
