@@ -12,8 +12,10 @@ type (
 		HTTP HTTP `yaml:"http"`
 		JWT  JWT  `yaml:"jwt"`
 		Log  Log  `yaml:"logger"`
+		TG   TG   `yaml:"telegram"`
+		AI   AI   `yaml:"ai"`
+		S3   S3   `yaml:"s3"`
 		PG   PG
-		TG   TG `yaml:"telegram"`
 	}
 
 	HTTP struct {
@@ -39,6 +41,20 @@ type (
 	JWT struct {
 		Secret []byte        `env-required:"true" env:"JWT_SECRET"`
 		TTL    time.Duration `env-required:"true" yaml:"ttl" env:"JWT_TTL"`
+	}
+
+	AI struct {
+		Key           string `env-required:"true" env:"AI_KEY"`
+		Model         string `env-required:"true" yaml:"model" env:"AI_MODEL"`
+		DefaultPrompt string `env-required:"true" yaml:"default_prompt" env:"AI_DEFAULT_PROMPT"`
+	}
+
+	S3 struct {
+		AccessKey string `env-required:"true" env:"S3_ACCESS_KEY"`
+		SecretKey string `env-required:"true" env:"S3_SECRET_KEY"`
+		Region    string `env-required:"true" env:"S3_REGION" yaml:"region"`
+		Endpoint  string `env-required:"true" env:"S3_ENDPOINT" yaml:"endpoint"`
+		Bucket    string `env-required:"true" env:"S3_BUCKET" yaml:"bucket"`
 	}
 )
 

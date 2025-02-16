@@ -28,7 +28,7 @@ func New(logger *slog.Logger, authSvc AuthService) *handler {
 }
 
 func (h *handler) Init(r *http.ServeMux) {
-	r.HandleFunc("/auth/login", h.HandleLogin)
+	r.HandleFunc("POST /auth/login", h.HandleLogin)
 }
 
 // @Summary      Вход в учетную запись администратора

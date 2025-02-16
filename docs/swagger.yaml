@@ -5,11 +5,21 @@ definitions:
         type: string
       password:
         type: string
+    required:
+    - login
+    - password
     type: object
   auth.LoginResponse:
     properties:
       token:
         type: string
+    type: object
+  content.GenerateContentResponse:
+    properties:
+      content:
+        type: string
+      status:
+        $ref: '#/definitions/httpx.Status'
     type: object
   httpx.Response:
     properties:
@@ -68,4 +78,34 @@ paths:
       summary: Вход в учетную запись администратора
       tags:
       - auth
+  /content/generate:
+    get:
+      consumes:
+      - application/json
+      description: Генерирует контент для телеграм поста на заданную тему с помощью
+        AI
+      parameters:
+      - description: Тема контента
+        in: query
+        name: theme
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/content.GenerateContentResponse'
+        "400":
+          description: Неверный формат запроса
+          schema:
+            $ref: '#/definitions/httpx.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/httpx.Response'
+      summary: Генерация контента для поста
+      tags:
+      - content
 swagger: "2.0"
