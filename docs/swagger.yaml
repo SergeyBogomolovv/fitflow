@@ -21,14 +21,50 @@ definitions:
       status:
         $ref: '#/definitions/httpx.Status'
     type: object
+  domain.Post:
+    properties:
+      audience:
+        allOf:
+        - $ref: '#/definitions/domain.UserLvl'
+        example: beginner
+      content:
+        example: Польза протеина в диете
+        type: string
+      id:
+        example: 123
+        type: integer
+      images:
+        example:
+        - image1.jpg
+        - image2.jpg
+        items:
+          type: string
+        type: array
+    type: object
+  domain.UserLvl:
+    enum:
+    - default
+    - beginner
+    - intermediate
+    - advanced
+    type: string
+    x-enum-varnames:
+    - UserLvlDefault
+    - UserLvlBeginner
+    - UserLvlIntermediate
+    - UserLvlAdvanced
   httpx.Response:
     properties:
       code:
+        example: 200
         type: integer
       message:
+        example: Запрос выполнен успешно
         type: string
       status:
-        $ref: '#/definitions/httpx.Status'
+        allOf:
+        - $ref: '#/definitions/httpx.Status'
+        example: success
     type: object
   httpx.Status:
     enum:
@@ -135,7 +171,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/content.GenerateContentResponse'
+            $ref: '#/definitions/domain.Post'
         "400":
           description: Неверные данные в запросе
           schema:
@@ -175,6 +211,34 @@ paths:
           schema:
             $ref: '#/definitions/httpx.Response'
       summary: Удаление поста
+      tags:
+      - content
+  /content/posts:
+    get:
+      parameters:
+      - default: default
+        description: Уровень пользователя (beginner, intermediate, advanced)
+        in: query
+        name: audience
+        type: string
+      - description: Фильтр по публикации (true - не опубликованные, false - все)
+        in: query
+        name: incoming
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список постов
+          schema:
+            items:
+              $ref: '#/definitions/domain.Post'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/httpx.Response'
+      summary: Получение постов
       tags:
       - content
 swagger: "2.0"

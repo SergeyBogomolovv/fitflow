@@ -108,3 +108,7 @@ func (s *postService) RemovePost(ctx context.Context, id int64) error {
 
 	return eg.Wait()
 }
+
+func (s *postService) Posts(ctx context.Context, audience domain.UserLvl, incoming bool) ([]domain.Post, error) {
+	return []domain.Post{}, nil
+}

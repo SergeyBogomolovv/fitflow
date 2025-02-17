@@ -151,7 +151,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/content.GenerateContentResponse"
+                            "$ref": "#/definitions/domain.Post"
                         }
                     },
                     "400": {
@@ -214,6 +214,49 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/content/posts": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "content"
+                ],
+                "summary": "Получение постов",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "default",
+                        "description": "Уровень пользователя (beginner, intermediate, advanced)",
+                        "name": "audience",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Фильтр по публикации (true - не опубликованные, false - все)",
+                        "name": "incoming",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список постов",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Post"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -251,17 +294,70 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.Post": {
+            "type": "object",
+            "properties": {
+                "audience": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.UserLvl"
+                        }
+                    ],
+                    "example": "beginner"
+                },
+                "content": {
+                    "type": "string",
+                    "example": "Польза протеина в диете"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 123
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "image1.jpg",
+                        "image2.jpg"
+                    ]
+                }
+            }
+        },
+        "domain.UserLvl": {
+            "type": "string",
+            "enum": [
+                "default",
+                "beginner",
+                "intermediate",
+                "advanced"
+            ],
+            "x-enum-varnames": [
+                "UserLvlDefault",
+                "UserLvlBeginner",
+                "UserLvlIntermediate",
+                "UserLvlAdvanced"
+            ]
+        },
         "httpx.Response": {
             "type": "object",
             "properties": {
                 "code": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 200
                 },
                 "message": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Запрос выполнен успешно"
                 },
                 "status": {
-                    "$ref": "#/definitions/httpx.Status"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/httpx.Status"
+                        }
+                    ],
+                    "example": "success"
                 }
             }
         },

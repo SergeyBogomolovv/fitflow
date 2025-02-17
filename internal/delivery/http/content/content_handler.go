@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	"github.com/SergeyBogomolovv/fitflow/pkg/httpx"
@@ -16,6 +17,7 @@ type ContentService interface {
 	GenerateContent(ctx context.Context, theme string) (string, error)
 	CreatePost(ctx context.Context, in domain.CreatePostDTO) (domain.Post, error)
 	RemovePost(ctx context.Context, id int64) error
+	Posts(ctx context.Context, audience domain.UserLvl, incoming bool) ([]domain.Post, error)
 }
 
 type handler struct {
@@ -70,7 +72,7 @@ func (h *handler) HandleGenerateContent(w http.ResponseWriter, r *http.Request) 
 // @Param images formData file true "Список изображений (можно несколько)"
 // @Param content formData string true "Текст поста"
 // @Param audience formData string true "Аудитория (beginner, intermediate, advanced)"
-// @Success      200    {object}  GenerateContentResponse
+// @Success      200    {object}  domain.Post
 // @Failure      400    {object}  httpx.Response  "Неверные данные в запросе"
 // @Failure      500    {object}  httpx.Response  "Внутренняя ошибка сервера"
 // @Router       /content/post [post]
@@ -126,4 +128,31 @@ func (h *handler) HandleRemovePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.WriteSuccess(w, "post deleted", http.StatusOK)
+}
+
+// @Summary      Получение постов
+// @Tags         content
+// @Produce      json
+// @Param        audience   query     string  false  "Уровень пользователя (beginner, intermediate, advanced)" default(default)
+// @Param        incoming   query     boolean false  "Фильтр по публикации (true - не опубликованные, false - все)"
+// @Success      200  {array}   domain.Post   "Список постов"
+// @Failure      500  {object}  httpx.Response  "Внутренняя ошибка сервера"
+// @Router       /content/posts [get]
+func (h *handler) HandleGetPosts(w http.ResponseWriter, r *http.Request) {
+	audience := r.URL.Query().Get("audience")
+	if audience != "beginner" && audience != "intermediate" && audience != "advanced" {
+		audience = "default"
+	}
+	incoming := false
+	if strings.EqualFold(r.URL.Query().Get("incoming"), "true") {
+		incoming = true
+	}
+
+	posts, err := h.contentSvc.Posts(r.Context(), domain.UserLvl(audience), incoming)
+	if err != nil {
+		httpx.WriteError(w, "failed to get posts", http.StatusInternalServerError)
+		return
+	}
+
+	httpx.WriteJSON(w, posts, http.StatusOK)
 }

@@ -6,10 +6,10 @@ import (
 )
 
 type Post struct {
-	ID       int64    `json:"id"`
-	Content  string   `json:"content"`
-	Audience UserLvl  `json:"audience"`
-	Images   []string `json:"images"`
+	ID       int64    `json:"id" example:"123"`
+	Content  string   `json:"content" example:"Польза протеина в диете"`
+	Audience UserLvl  `json:"audience" example:"beginner"`
+	Images   []string `json:"images" example:"image1.jpg,image2.jpg"`
 }
 
 var (

@@ -136,6 +136,66 @@ func (_c *ContentService_GenerateContent_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// Posts provides a mock function with given fields: ctx, audience, published
+func (_m *ContentService) Posts(ctx context.Context, audience domain.UserLvl, published bool) ([]domain.Post, error) {
+	ret := _m.Called(ctx, audience, published)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Posts")
+	}
+
+	var r0 []domain.Post
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UserLvl, bool) ([]domain.Post, error)); ok {
+		return rf(ctx, audience, published)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UserLvl, bool) []domain.Post); ok {
+		r0 = rf(ctx, audience, published)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.Post)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, domain.UserLvl, bool) error); ok {
+		r1 = rf(ctx, audience, published)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ContentService_Posts_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Posts'
+type ContentService_Posts_Call struct {
+	*mock.Call
+}
+
+// Posts is a helper method to define mock.On call
+//   - ctx context.Context
+//   - audience domain.UserLvl
+//   - published bool
+func (_e *ContentService_Expecter) Posts(ctx interface{}, audience interface{}, published interface{}) *ContentService_Posts_Call {
+	return &ContentService_Posts_Call{Call: _e.mock.On("Posts", ctx, audience, published)}
+}
+
+func (_c *ContentService_Posts_Call) Run(run func(ctx context.Context, audience domain.UserLvl, published bool)) *ContentService_Posts_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(domain.UserLvl), args[2].(bool))
+	})
+	return _c
+}
+
+func (_c *ContentService_Posts_Call) Return(_a0 []domain.Post, _a1 error) *ContentService_Posts_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ContentService_Posts_Call) RunAndReturn(run func(context.Context, domain.UserLvl, bool) ([]domain.Post, error)) *ContentService_Posts_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RemovePost provides a mock function with given fields: ctx, id
 func (_m *ContentService) RemovePost(ctx context.Context, id int64) error {
 	ret := _m.Called(ctx, id)

@@ -214,3 +214,82 @@ func TestContentHandler_HandleRemovePost(t *testing.T) {
 		})
 	}
 }
+
+func TestContentHandler_HandleGetPosts(t *testing.T) {
+	type args struct {
+		audience string
+		incoming bool
+	}
+
+	type MockBehavior func(svc *mocks.ContentService, args args)
+
+	testCases := []struct {
+		name           string
+		args           args
+		mockBehavior   MockBehavior
+		wantStatusCode int
+		wantBody       string
+	}{
+		{
+			name: "success",
+			args: args{
+				audience: "beginner",
+				incoming: false,
+			},
+			mockBehavior: func(svc *mocks.ContentService, args args) {
+				svc.EXPECT().
+					Posts(mock.Anything, domain.UserLvl(args.audience), args.incoming).
+					Return([]domain.Post{
+						{ID: 1, Audience: domain.UserLvl(args.audience), Content: "test content", Images: []string{"http://image.ru"}},
+					}, nil).Once()
+			},
+			wantStatusCode: 200,
+			wantBody:       `[{"id":1,"content":"test content","audience":"beginner","images":["http://image.ru"]}]` + "\n",
+		},
+		{
+			name: "unknown audience",
+			args: args{
+				audience: "unknown",
+				incoming: false,
+			},
+			mockBehavior: func(svc *mocks.ContentService, args args) {
+				svc.EXPECT().
+					Posts(mock.Anything, domain.UserLvlDefault, args.incoming).
+					Return([]domain.Post{{ID: 1, Audience: domain.UserLvlDefault, Content: "test content", Images: []string{"http://image.ru"}}}, nil).Once()
+			},
+			wantStatusCode: 200,
+			wantBody:       `[{"id":1,"content":"test content","audience":"default","images":["http://image.ru"]}]` + "\n",
+		},
+		{
+			name: "error",
+			args: args{
+				audience: "beginner",
+				incoming: false,
+			},
+			mockBehavior: func(svc *mocks.ContentService, args args) {
+				svc.EXPECT().
+					Posts(mock.Anything, domain.UserLvl(args.audience), args.incoming).
+					Return(nil, assert.AnError).Once()
+			},
+			wantStatusCode: 500,
+			wantBody:       `{"status":"error","code":500,"message":"failed to get posts"}` + "\n",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			contentSvc := mocks.NewContentService(t)
+			tc.mockBehavior(contentSvc, tc.args)
+
+			handler := contentHandler.New(testutils.NewTestLogger(), contentSvc)
+
+			rec := httptest.NewRecorder()
+			url := fmt.Sprintf("/content/posts?audience=%s&incoming=%t", tc.args.audience, tc.args.incoming)
+			req := testutils.NewJSONRequest(t, http.MethodGet, url, nil)
+			handler.HandleGetPosts(rec, req)
+
+			assert.Equal(t, tc.wantStatusCode, rec.Code)
+			assert.Equal(t, tc.wantBody, rec.Body.String())
+		})
+	}
+}
