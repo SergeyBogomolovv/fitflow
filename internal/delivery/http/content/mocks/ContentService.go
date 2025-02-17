@@ -136,6 +136,53 @@ func (_c *ContentService_GenerateContent_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// RemovePost provides a mock function with given fields: ctx, id
+func (_m *ContentService) RemovePost(ctx context.Context, id int64) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemovePost")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// ContentService_RemovePost_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemovePost'
+type ContentService_RemovePost_Call struct {
+	*mock.Call
+}
+
+// RemovePost is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id int64
+func (_e *ContentService_Expecter) RemovePost(ctx interface{}, id interface{}) *ContentService_RemovePost_Call {
+	return &ContentService_RemovePost_Call{Call: _e.mock.On("RemovePost", ctx, id)}
+}
+
+func (_c *ContentService_RemovePost_Call) Run(run func(ctx context.Context, id int64)) *ContentService_RemovePost_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *ContentService_RemovePost_Call) Return(_a0 error) *ContentService_RemovePost_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *ContentService_RemovePost_Call) RunAndReturn(run func(context.Context, int64) error) *ContentService_RemovePost_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewContentService creates a new instance of ContentService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewContentService(t interface {

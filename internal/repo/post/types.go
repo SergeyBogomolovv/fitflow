@@ -36,4 +36,5 @@ type PostRepo interface {
 	LatestPostByAudience(ctx context.Context, audience domain.UserLvl) (domain.Post, error)
 	MarkAsPosted(ctx context.Context, id int64) error
 	SavePost(ctx context.Context, in SavePostInput) (domain.Post, error)
+	RemovePost(ctx context.Context, id int64) (domain.Post, error)
 }

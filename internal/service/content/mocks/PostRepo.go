@@ -24,6 +24,63 @@ func (_m *PostRepo) EXPECT() *PostRepo_Expecter {
 	return &PostRepo_Expecter{mock: &_m.Mock}
 }
 
+// RemovePost provides a mock function with given fields: ctx, id
+func (_m *PostRepo) RemovePost(ctx context.Context, id int64) (domain.Post, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemovePost")
+	}
+
+	var r0 domain.Post
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64) (domain.Post, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int64) domain.Post); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(domain.Post)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int64) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// PostRepo_RemovePost_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemovePost'
+type PostRepo_RemovePost_Call struct {
+	*mock.Call
+}
+
+// RemovePost is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id int64
+func (_e *PostRepo_Expecter) RemovePost(ctx interface{}, id interface{}) *PostRepo_RemovePost_Call {
+	return &PostRepo_RemovePost_Call{Call: _e.mock.On("RemovePost", ctx, id)}
+}
+
+func (_c *PostRepo_RemovePost_Call) Run(run func(ctx context.Context, id int64)) *PostRepo_RemovePost_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *PostRepo_RemovePost_Call) Return(_a0 domain.Post, _a1 error) *PostRepo_RemovePost_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *PostRepo_RemovePost_Call) RunAndReturn(run func(context.Context, int64) (domain.Post, error)) *PostRepo_RemovePost_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SavePost provides a mock function with given fields: ctx, in
 func (_m *PostRepo) SavePost(ctx context.Context, in post.SavePostInput) (domain.Post, error) {
 	ret := _m.Called(ctx, in)

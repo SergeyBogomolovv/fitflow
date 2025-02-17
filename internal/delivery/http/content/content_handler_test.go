@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	contentHandler "github.com/SergeyBogomolovv/fitflow/internal/delivery/http/content"
@@ -149,6 +150,64 @@ func TestContentHandler_CreatePost(t *testing.T) {
 
 			req := testutils.NewMultipartRequest(t, http.MethodPost, "/content/post", body)
 			handler.HandleCreatePost(rec, req)
+
+			assert.Equal(t, tc.wantStatusCode, rec.Code)
+			assert.Equal(t, tc.wantBody, rec.Body.String())
+		})
+	}
+}
+
+func TestContentHandler_HandleRemovePost(t *testing.T) {
+	type MockBehavior func(svc *mocks.ContentService, id int64)
+
+	testCases := []struct {
+		name           string
+		id             int64
+		mockBehavior   MockBehavior
+		wantStatusCode int
+		wantBody       string
+	}{
+		{
+			name: "success",
+			id:   1,
+			mockBehavior: func(svc *mocks.ContentService, id int64) {
+				svc.EXPECT().RemovePost(mock.Anything, id).Return(nil).Once()
+			},
+			wantStatusCode: 200,
+			wantBody:       `{"status":"success","code":200,"message":"post deleted"}` + "\n",
+		},
+		{
+			name: "post not found",
+			id:   1,
+			mockBehavior: func(svc *mocks.ContentService, id int64) {
+				svc.EXPECT().RemovePost(mock.Anything, id).Return(domain.ErrPostNotFound).Once()
+			},
+			wantStatusCode: 404,
+			wantBody:       `{"status":"error","code":404,"message":"post not found"}` + "\n",
+		},
+		{
+			name: "error",
+			id:   1,
+			mockBehavior: func(svc *mocks.ContentService, id int64) {
+				svc.EXPECT().RemovePost(mock.Anything, id).Return(assert.AnError).Once()
+			},
+			wantStatusCode: 500,
+			wantBody:       `{"status":"error","code":500,"message":"failed to delete post"}` + "\n",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			contentSvc := mocks.NewContentService(t)
+			tc.mockBehavior(contentSvc, tc.id)
+
+			handler := contentHandler.New(testutils.NewTestLogger(), contentSvc)
+
+			rec := httptest.NewRecorder()
+			url := fmt.Sprintf("/content/post/%d", tc.id)
+			req := testutils.NewJSONRequest(t, http.MethodDelete, url, nil)
+			req.SetPathValue("id", strconv.Itoa(int(tc.id)))
+			handler.HandleRemovePost(rec, req)
 
 			assert.Equal(t, tc.wantStatusCode, rec.Code)
 			assert.Equal(t, tc.wantBody, rec.Body.String())

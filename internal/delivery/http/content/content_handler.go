@@ -2,8 +2,10 @@ package content
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	"github.com/SergeyBogomolovv/fitflow/pkg/httpx"
@@ -13,6 +15,7 @@ import (
 type ContentService interface {
 	GenerateContent(ctx context.Context, theme string) (string, error)
 	CreatePost(ctx context.Context, in domain.CreatePostDTO) (domain.Post, error)
+	RemovePost(ctx context.Context, id int64) error
 }
 
 type handler struct {
@@ -29,6 +32,7 @@ func New(logger *slog.Logger, contentSvc ContentService) *handler {
 func (h *handler) Init(r *http.ServeMux) {
 	r.HandleFunc("GET /content/generate", h.HandleGenerateContent)
 	r.HandleFunc("POST /content/post", h.HandleCreatePost)
+	r.HandleFunc("DELETE /content/post/{id}", h.HandleRemovePost)
 }
 
 // @Summary      Генерация контента для поста
@@ -94,4 +98,32 @@ func (h *handler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.WriteJSON(w, post, http.StatusCreated)
+}
+
+// @Summary      Удаление поста
+// @Tags         content
+// @Produce      json
+// @Param        id   path      int  true  "ID поста"
+// @Success      200  {object}  httpx.Response  "Пост успешно удалён"
+// @Failure      400  {object}  httpx.Response  "Некорректный ID"
+// @Failure      404  {object}  httpx.Response  "Пост не найден"
+// @Failure      500  {object}  httpx.Response  "Внутренняя ошибка сервера"
+// @Router       /content/post/{id} [delete]
+func (h *handler) HandleRemovePost(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httpx.WriteError(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.contentSvc.RemovePost(r.Context(), id); err != nil {
+		if errors.Is(err, domain.ErrPostNotFound) {
+			httpx.WriteError(w, "post not found", http.StatusNotFound)
+			return
+		}
+		httpx.WriteError(w, "failed to delete post", http.StatusInternalServerError)
+		return
+	}
+
+	httpx.WriteSuccess(w, "post deleted", http.StatusOK)
 }

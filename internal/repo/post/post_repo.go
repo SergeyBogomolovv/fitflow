@@ -43,18 +43,7 @@ func (r *postRepo) LatestPostByAudience(ctx context.Context, audience domain.Use
 
 func (r *postRepo) MarkAsPosted(ctx context.Context, id int64) error {
 	query, args := r.qb.Update("posts").Set("posted", true).Where(sq.Eq{"post_id": id}).MustSql()
-	res, err := r.db.ExecContext(ctx, query, args...)
-	if err != nil {
-		return err
-	}
-	aff, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if aff == 0 {
-		return domain.ErrPostNotFound
-	}
-	return nil
+	return r.execOrNotFound(ctx, query, args)
 }
 
 func (r *postRepo) SavePost(ctx context.Context, in SavePostInput) (domain.Post, error) {
@@ -70,4 +59,37 @@ func (r *postRepo) SavePost(ctx context.Context, in SavePostInput) (domain.Post,
 		return domain.Post{}, fmt.Errorf("failed to save post: %w", err)
 	}
 	return post.ToDomain(), nil
+}
+
+func (r *postRepo) RemovePost(ctx context.Context, id int64) (domain.Post, error) {
+	query, args := r.qb.
+		Delete("posts").
+		Where(sq.Eq{"post_id": id}).
+		Suffix("RETURNING post_id, content, audience, images").
+		MustSql()
+
+	var post Post
+	if err := r.db.GetContext(ctx, &post, query, args...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.Post{}, domain.ErrPostNotFound
+		}
+		return domain.Post{}, err
+	}
+
+	return post.ToDomain(), nil
+}
+
+func (r *postRepo) execOrNotFound(ctx context.Context, query string, args []any) error {
+	res, err := r.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	aff, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if aff == 0 {
+		return domain.ErrPostNotFound
+	}
+	return nil
 }

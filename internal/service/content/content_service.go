@@ -2,21 +2,25 @@ package content
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	postRepo "github.com/SergeyBogomolovv/fitflow/internal/repo/post"
+	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 )
 
 type PostRepo interface {
 	SavePost(ctx context.Context, in postRepo.SavePostInput) (domain.Post, error)
+	RemovePost(ctx context.Context, id int64) (domain.Post, error)
 }
 
 type S3Client interface {
 	Upload(ctx context.Context, key string, body io.Reader) (string, error)
-	Delete(ctx context.Context, key string) error
+	Delete(ctx context.Context, url string) error
 }
 
 type AiGenerator interface {
@@ -30,7 +34,7 @@ type postService struct {
 	s3       S3Client
 }
 
-const imagesFolder = "images"
+const ImagesFolder = "images"
 
 func New(logger *slog.Logger, repo PostRepo, ai AiGenerator, s3 S3Client) *postService {
 	return &postService{logger, repo, ai, s3}
@@ -49,7 +53,7 @@ func (s *postService) CreatePost(ctx context.Context, in domain.CreatePostDTO) (
 		Audience: in.Audience,
 	}
 
-	eg, ctx := errgroup.WithContext(ctx)
+	eg, uploadCtx := errgroup.WithContext(ctx)
 	for _, imageHeader := range in.Images {
 		eg.Go(func() error {
 			image, err := imageHeader.Open()
@@ -58,7 +62,7 @@ func (s *postService) CreatePost(ctx context.Context, in domain.CreatePostDTO) (
 				return err
 			}
 			defer image.Close()
-			key, err := s.s3.Upload(ctx, imagesFolder, image)
+			key, err := s.s3.Upload(uploadCtx, fmt.Sprintf("%s/%s.jpg", ImagesFolder, uuid.NewString()), image)
 			if err != nil {
 				logger.Error("failed to upload image", "error", err)
 				return err
@@ -77,4 +81,30 @@ func (s *postService) CreatePost(ctx context.Context, in domain.CreatePostDTO) (
 		return domain.Post{}, err
 	}
 	return post, nil
+}
+
+func (s *postService) RemovePost(ctx context.Context, id int64) error {
+	const op = "content.RemovePost"
+	logger := s.logger.With(slog.String("op", op), slog.Int64("id", id))
+
+	post, err := s.postRepo.RemovePost(ctx, id)
+	if err != nil {
+		if !errors.Is(err, domain.ErrPostNotFound) {
+			logger.Error("failed to remove post", "err", err)
+		}
+		return err
+	}
+
+	eg, ctx := errgroup.WithContext(ctx)
+	for _, url := range post.Images {
+		eg.Go(func() error {
+			err := s.s3.Delete(ctx, url)
+			if err != nil {
+				logger.Error("failed to remove image", "err", err)
+			}
+			return err
+		})
+	}
+
+	return eg.Wait()
 }

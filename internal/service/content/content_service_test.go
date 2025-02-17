@@ -34,7 +34,7 @@ func TestContentService_CreatePost(t *testing.T) {
 				},
 			},
 			mockBehavior: func(repo *mocks.PostRepo, s3 *mocks.S3Client, in domain.CreatePostDTO) {
-				s3.EXPECT().Upload(mock.Anything, "images", mock.Anything).Return("test.jpg", nil).Once()
+				s3.EXPECT().Upload(mock.Anything, mock.Anything, mock.Anything).Return("test.jpg", nil).Once()
 				repo.EXPECT().SavePost(mock.Anything, postRepo.SavePostInput{
 					Content:  in.Content,
 					Images:   []string{"test.jpg"},
@@ -71,7 +71,7 @@ func TestContentService_CreatePost(t *testing.T) {
 				},
 			},
 			mockBehavior: func(repo *mocks.PostRepo, s3 *mocks.S3Client, in domain.CreatePostDTO) {
-				s3.EXPECT().Upload(mock.Anything, "images", mock.Anything).Return("", assert.AnError).Once()
+				s3.EXPECT().Upload(mock.Anything, mock.Anything, mock.Anything).Return("", assert.AnError).Once()
 			},
 			wantErr: true,
 		},
@@ -85,7 +85,7 @@ func TestContentService_CreatePost(t *testing.T) {
 				},
 			},
 			mockBehavior: func(repo *mocks.PostRepo, s3 *mocks.S3Client, in domain.CreatePostDTO) {
-				s3.EXPECT().Upload(mock.Anything, "images", mock.Anything).Return("test.jpg", nil).Once()
+				s3.EXPECT().Upload(mock.Anything, mock.Anything, mock.Anything).Return("test.jpg", nil).Once()
 				repo.EXPECT().SavePost(mock.Anything, postRepo.SavePostInput{
 					Content:  in.Content,
 					Images:   []string{"test.jpg"},
@@ -110,6 +110,56 @@ func TestContentService_CreatePost(t *testing.T) {
 			}
 			assert.NoError(t, err)
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestContentService_RemovePost(t *testing.T) {
+	type MockBehavior func(repo *mocks.PostRepo, s3 *mocks.S3Client, id int64)
+
+	testCases := []struct {
+		name         string
+		id           int64
+		mockBehavior MockBehavior
+		want         error
+	}{
+		{
+			name: "success",
+			id:   1,
+			mockBehavior: func(repo *mocks.PostRepo, s3 *mocks.S3Client, id int64) {
+				repo.EXPECT().RemovePost(mock.Anything, id).Return(domain.Post{Images: []string{"test.jpg"}}, nil).Once()
+				s3.EXPECT().Delete(mock.Anything, "test.jpg").Return(nil).Once()
+			},
+			want: nil,
+		},
+		{
+			name: "post not found",
+			id:   1,
+			mockBehavior: func(repo *mocks.PostRepo, s3 *mocks.S3Client, id int64) {
+				repo.EXPECT().RemovePost(mock.Anything, id).Return(domain.Post{}, domain.ErrPostNotFound).Once()
+			},
+			want: domain.ErrPostNotFound,
+		},
+		{
+			name: "failed to delete image",
+			id:   1,
+			mockBehavior: func(repo *mocks.PostRepo, s3 *mocks.S3Client, id int64) {
+				repo.EXPECT().RemovePost(mock.Anything, id).Return(domain.Post{Images: []string{"test.jpg"}}, nil).Once()
+				s3.EXPECT().Delete(mock.Anything, "test.jpg").Return(assert.AnError).Once()
+			},
+			want: assert.AnError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := mocks.NewPostRepo(t)
+			s3 := mocks.NewS3Client(t)
+			tc.mockBehavior(repo, s3, tc.id)
+
+			svc := content.New(testutils.NewTestLogger(), repo, nil, s3)
+			got := svc.RemovePost(context.Background(), tc.id)
+			assert.ErrorIs(t, got, tc.want)
 		})
 	}
 }
