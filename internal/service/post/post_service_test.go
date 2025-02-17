@@ -33,7 +33,7 @@ func TestPostService_PickLatest(t *testing.T) {
 				audience: domain.UserLvlBeginner,
 			},
 			mockBehavior: func(repo *mocks.PostRepo, args args) {
-				repo.EXPECT().LatestPostByAudience(args.ctx, args.audience).Return(domain.Post{ID: 1}, nil).Once()
+				repo.EXPECT().LatestByAudience(args.ctx, args.audience).Return(domain.Post{ID: 1}, nil).Once()
 			},
 			want: domain.Post{ID: 1},
 		},
@@ -44,7 +44,7 @@ func TestPostService_PickLatest(t *testing.T) {
 				audience: domain.UserLvlBeginner,
 			},
 			mockBehavior: func(repo *mocks.PostRepo, args args) {
-				repo.EXPECT().LatestPostByAudience(args.ctx, args.audience).Return(domain.Post{}, domain.ErrPostNotFound).Once()
+				repo.EXPECT().LatestByAudience(args.ctx, args.audience).Return(domain.Post{}, domain.ErrPostNotFound).Once()
 			},
 			wantErr: domain.ErrPostNotFound,
 		},

@@ -9,7 +9,7 @@ import (
 )
 
 type PostRepo interface {
-	LatestPostByAudience(ctx context.Context, audience domain.UserLvl) (domain.Post, error)
+	LatestByAudience(ctx context.Context, audience domain.UserLvl) (domain.Post, error)
 	MarkAsPosted(ctx context.Context, id int64) error
 }
 
@@ -26,7 +26,7 @@ func (s *postService) PickLatest(ctx context.Context, audience domain.UserLvl) (
 	const op = "post.PickLatest"
 	logger := s.logger.With(slog.String("op", op), slog.String("audience", string(audience)))
 
-	post, err := s.postRepo.LatestPostByAudience(ctx, audience)
+	post, err := s.postRepo.LatestByAudience(ctx, audience)
 	if err != nil {
 		if errors.Is(err, domain.ErrNoPosts) {
 			return domain.Post{}, domain.ErrNoPosts

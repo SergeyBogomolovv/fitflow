@@ -22,12 +22,12 @@ func (_m *PostRepo) EXPECT() *PostRepo_Expecter {
 	return &PostRepo_Expecter{mock: &_m.Mock}
 }
 
-// LatestPostByAudience provides a mock function with given fields: ctx, audience
-func (_m *PostRepo) LatestPostByAudience(ctx context.Context, audience domain.UserLvl) (domain.Post, error) {
+// LatestByAudience provides a mock function with given fields: ctx, audience
+func (_m *PostRepo) LatestByAudience(ctx context.Context, audience domain.UserLvl) (domain.Post, error) {
 	ret := _m.Called(ctx, audience)
 
 	if len(ret) == 0 {
-		panic("no return value specified for LatestPostByAudience")
+		panic("no return value specified for LatestByAudience")
 	}
 
 	var r0 domain.Post
@@ -50,31 +50,31 @@ func (_m *PostRepo) LatestPostByAudience(ctx context.Context, audience domain.Us
 	return r0, r1
 }
 
-// PostRepo_LatestPostByAudience_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LatestPostByAudience'
-type PostRepo_LatestPostByAudience_Call struct {
+// PostRepo_LatestByAudience_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LatestByAudience'
+type PostRepo_LatestByAudience_Call struct {
 	*mock.Call
 }
 
-// LatestPostByAudience is a helper method to define mock.On call
+// LatestByAudience is a helper method to define mock.On call
 //   - ctx context.Context
 //   - audience domain.UserLvl
-func (_e *PostRepo_Expecter) LatestPostByAudience(ctx interface{}, audience interface{}) *PostRepo_LatestPostByAudience_Call {
-	return &PostRepo_LatestPostByAudience_Call{Call: _e.mock.On("LatestPostByAudience", ctx, audience)}
+func (_e *PostRepo_Expecter) LatestByAudience(ctx interface{}, audience interface{}) *PostRepo_LatestByAudience_Call {
+	return &PostRepo_LatestByAudience_Call{Call: _e.mock.On("LatestByAudience", ctx, audience)}
 }
 
-func (_c *PostRepo_LatestPostByAudience_Call) Run(run func(ctx context.Context, audience domain.UserLvl)) *PostRepo_LatestPostByAudience_Call {
+func (_c *PostRepo_LatestByAudience_Call) Run(run func(ctx context.Context, audience domain.UserLvl)) *PostRepo_LatestByAudience_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(domain.UserLvl))
 	})
 	return _c
 }
 
-func (_c *PostRepo_LatestPostByAudience_Call) Return(_a0 domain.Post, _a1 error) *PostRepo_LatestPostByAudience_Call {
+func (_c *PostRepo_LatestByAudience_Call) Return(_a0 domain.Post, _a1 error) *PostRepo_LatestByAudience_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *PostRepo_LatestPostByAudience_Call) RunAndReturn(run func(context.Context, domain.UserLvl) (domain.Post, error)) *PostRepo_LatestPostByAudience_Call {
+func (_c *PostRepo_LatestByAudience_Call) RunAndReturn(run func(context.Context, domain.UserLvl) (domain.Post, error)) *PostRepo_LatestByAudience_Call {
 	_c.Call.Return(run)
 	return _c
 }

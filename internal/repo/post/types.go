@@ -32,9 +32,18 @@ func (p Post) ToDomain() domain.Post {
 	}
 }
 
+func mapPostsToDomain(posts []Post) []domain.Post {
+	res := make([]domain.Post, 0, len(posts))
+	for _, post := range posts {
+		res = append(res, post.ToDomain())
+	}
+	return res
+}
+
 type PostRepo interface {
-	LatestPostByAudience(ctx context.Context, audience domain.UserLvl) (domain.Post, error)
+	LatestByAudience(ctx context.Context, audience domain.UserLvl) (domain.Post, error)
 	MarkAsPosted(ctx context.Context, id int64) error
-	SavePost(ctx context.Context, in SavePostInput) (domain.Post, error)
-	RemovePost(ctx context.Context, id int64) (domain.Post, error)
+	Save(ctx context.Context, in SavePostInput) (domain.Post, error)
+	Remove(ctx context.Context, id int64) (domain.Post, error)
+	List(ctx context.Context, audience domain.UserLvl, incoming bool) ([]domain.Post, error)
 }

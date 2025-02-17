@@ -33,6 +33,7 @@ func New(logger *slog.Logger, contentSvc ContentService) *handler {
 
 func (h *handler) Init(r *http.ServeMux) {
 	r.HandleFunc("GET /content/generate", h.HandleGenerateContent)
+	r.HandleFunc("GET /content/posts", h.HandleGetPosts)
 	r.HandleFunc("POST /content/post", h.HandleCreatePost)
 	r.HandleFunc("DELETE /content/post/{id}", h.HandleRemovePost)
 }

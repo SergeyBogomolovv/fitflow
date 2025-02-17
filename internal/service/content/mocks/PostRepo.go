@@ -24,12 +24,72 @@ func (_m *PostRepo) EXPECT() *PostRepo_Expecter {
 	return &PostRepo_Expecter{mock: &_m.Mock}
 }
 
-// RemovePost provides a mock function with given fields: ctx, id
-func (_m *PostRepo) RemovePost(ctx context.Context, id int64) (domain.Post, error) {
+// List provides a mock function with given fields: ctx, audience, incoming
+func (_m *PostRepo) List(ctx context.Context, audience domain.UserLvl, incoming bool) ([]domain.Post, error) {
+	ret := _m.Called(ctx, audience, incoming)
+
+	if len(ret) == 0 {
+		panic("no return value specified for List")
+	}
+
+	var r0 []domain.Post
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UserLvl, bool) ([]domain.Post, error)); ok {
+		return rf(ctx, audience, incoming)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UserLvl, bool) []domain.Post); ok {
+		r0 = rf(ctx, audience, incoming)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.Post)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, domain.UserLvl, bool) error); ok {
+		r1 = rf(ctx, audience, incoming)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// PostRepo_List_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'List'
+type PostRepo_List_Call struct {
+	*mock.Call
+}
+
+// List is a helper method to define mock.On call
+//   - ctx context.Context
+//   - audience domain.UserLvl
+//   - incoming bool
+func (_e *PostRepo_Expecter) List(ctx interface{}, audience interface{}, incoming interface{}) *PostRepo_List_Call {
+	return &PostRepo_List_Call{Call: _e.mock.On("List", ctx, audience, incoming)}
+}
+
+func (_c *PostRepo_List_Call) Run(run func(ctx context.Context, audience domain.UserLvl, incoming bool)) *PostRepo_List_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(domain.UserLvl), args[2].(bool))
+	})
+	return _c
+}
+
+func (_c *PostRepo_List_Call) Return(_a0 []domain.Post, _a1 error) *PostRepo_List_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *PostRepo_List_Call) RunAndReturn(run func(context.Context, domain.UserLvl, bool) ([]domain.Post, error)) *PostRepo_List_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Remove provides a mock function with given fields: ctx, id
+func (_m *PostRepo) Remove(ctx context.Context, id int64) (domain.Post, error) {
 	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
-		panic("no return value specified for RemovePost")
+		panic("no return value specified for Remove")
 	}
 
 	var r0 domain.Post
@@ -52,41 +112,41 @@ func (_m *PostRepo) RemovePost(ctx context.Context, id int64) (domain.Post, erro
 	return r0, r1
 }
 
-// PostRepo_RemovePost_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemovePost'
-type PostRepo_RemovePost_Call struct {
+// PostRepo_Remove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Remove'
+type PostRepo_Remove_Call struct {
 	*mock.Call
 }
 
-// RemovePost is a helper method to define mock.On call
+// Remove is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id int64
-func (_e *PostRepo_Expecter) RemovePost(ctx interface{}, id interface{}) *PostRepo_RemovePost_Call {
-	return &PostRepo_RemovePost_Call{Call: _e.mock.On("RemovePost", ctx, id)}
+func (_e *PostRepo_Expecter) Remove(ctx interface{}, id interface{}) *PostRepo_Remove_Call {
+	return &PostRepo_Remove_Call{Call: _e.mock.On("Remove", ctx, id)}
 }
 
-func (_c *PostRepo_RemovePost_Call) Run(run func(ctx context.Context, id int64)) *PostRepo_RemovePost_Call {
+func (_c *PostRepo_Remove_Call) Run(run func(ctx context.Context, id int64)) *PostRepo_Remove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(int64))
 	})
 	return _c
 }
 
-func (_c *PostRepo_RemovePost_Call) Return(_a0 domain.Post, _a1 error) *PostRepo_RemovePost_Call {
+func (_c *PostRepo_Remove_Call) Return(_a0 domain.Post, _a1 error) *PostRepo_Remove_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *PostRepo_RemovePost_Call) RunAndReturn(run func(context.Context, int64) (domain.Post, error)) *PostRepo_RemovePost_Call {
+func (_c *PostRepo_Remove_Call) RunAndReturn(run func(context.Context, int64) (domain.Post, error)) *PostRepo_Remove_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// SavePost provides a mock function with given fields: ctx, in
-func (_m *PostRepo) SavePost(ctx context.Context, in post.SavePostInput) (domain.Post, error) {
+// Save provides a mock function with given fields: ctx, in
+func (_m *PostRepo) Save(ctx context.Context, in post.SavePostInput) (domain.Post, error) {
 	ret := _m.Called(ctx, in)
 
 	if len(ret) == 0 {
-		panic("no return value specified for SavePost")
+		panic("no return value specified for Save")
 	}
 
 	var r0 domain.Post
@@ -109,31 +169,31 @@ func (_m *PostRepo) SavePost(ctx context.Context, in post.SavePostInput) (domain
 	return r0, r1
 }
 
-// PostRepo_SavePost_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SavePost'
-type PostRepo_SavePost_Call struct {
+// PostRepo_Save_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Save'
+type PostRepo_Save_Call struct {
 	*mock.Call
 }
 
-// SavePost is a helper method to define mock.On call
+// Save is a helper method to define mock.On call
 //   - ctx context.Context
 //   - in post.SavePostInput
-func (_e *PostRepo_Expecter) SavePost(ctx interface{}, in interface{}) *PostRepo_SavePost_Call {
-	return &PostRepo_SavePost_Call{Call: _e.mock.On("SavePost", ctx, in)}
+func (_e *PostRepo_Expecter) Save(ctx interface{}, in interface{}) *PostRepo_Save_Call {
+	return &PostRepo_Save_Call{Call: _e.mock.On("Save", ctx, in)}
 }
 
-func (_c *PostRepo_SavePost_Call) Run(run func(ctx context.Context, in post.SavePostInput)) *PostRepo_SavePost_Call {
+func (_c *PostRepo_Save_Call) Run(run func(ctx context.Context, in post.SavePostInput)) *PostRepo_Save_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(post.SavePostInput))
 	})
 	return _c
 }
 
-func (_c *PostRepo_SavePost_Call) Return(_a0 domain.Post, _a1 error) *PostRepo_SavePost_Call {
+func (_c *PostRepo_Save_Call) Return(_a0 domain.Post, _a1 error) *PostRepo_Save_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *PostRepo_SavePost_Call) RunAndReturn(run func(context.Context, post.SavePostInput) (domain.Post, error)) *PostRepo_SavePost_Call {
+func (_c *PostRepo_Save_Call) RunAndReturn(run func(context.Context, post.SavePostInput) (domain.Post, error)) *PostRepo_Save_Call {
 	_c.Call.Return(run)
 	return _c
 }

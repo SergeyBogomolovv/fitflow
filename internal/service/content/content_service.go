@@ -14,8 +14,9 @@ import (
 )
 
 type PostRepo interface {
-	SavePost(ctx context.Context, in postRepo.SavePostInput) (domain.Post, error)
-	RemovePost(ctx context.Context, id int64) (domain.Post, error)
+	Save(ctx context.Context, in postRepo.SavePostInput) (domain.Post, error)
+	Remove(ctx context.Context, id int64) (domain.Post, error)
+	List(ctx context.Context, audience domain.UserLvl, incoming bool) ([]domain.Post, error)
 }
 
 type S3Client interface {
@@ -75,7 +76,7 @@ func (s *postService) CreatePost(ctx context.Context, in domain.CreatePostDTO) (
 		return domain.Post{}, err
 	}
 
-	post, err := s.postRepo.SavePost(ctx, input)
+	post, err := s.postRepo.Save(ctx, input)
 	if err != nil {
 		logger.Error("failed to save post", "error", err)
 		return domain.Post{}, err
@@ -87,7 +88,7 @@ func (s *postService) RemovePost(ctx context.Context, id int64) error {
 	const op = "content.RemovePost"
 	logger := s.logger.With(slog.String("op", op), slog.Int64("id", id))
 
-	post, err := s.postRepo.RemovePost(ctx, id)
+	post, err := s.postRepo.Remove(ctx, id)
 	if err != nil {
 		if !errors.Is(err, domain.ErrPostNotFound) {
 			logger.Error("failed to remove post", "err", err)
@@ -110,5 +111,5 @@ func (s *postService) RemovePost(ctx context.Context, id int64) error {
 }
 
 func (s *postService) Posts(ctx context.Context, audience domain.UserLvl, incoming bool) ([]domain.Post, error) {
-	return []domain.Post{}, nil
+	return s.postRepo.List(ctx, audience, incoming)
 }
