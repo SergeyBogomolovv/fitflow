@@ -3,6 +3,8 @@ package telegram
 import (
 	"context"
 	"log/slog"
+	"sync"
+	"sync/atomic"
 
 	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	"github.com/robfig/cron/v3"
@@ -55,18 +57,24 @@ func (h *handler) notifySubscribers(ctx context.Context, lvl domain.UserLvl) {
 	}
 }
 
-func (h *handler) sendPost(subscribers []int64, post domain.Post) int {
+func (h *handler) sendPost(subscribers []int64, post domain.Post) int64 {
 	const op = "telegram.sendPost"
 	logger := h.logger.With(slog.String("op", op))
 
-	count := 0
+	count := int64(0)
+	wg := sync.WaitGroup{}
 	for _, id := range subscribers {
-		if err := h.sendMessage(tele.ChatID(id), post); err != nil {
-			logger.Error("failed to send post", "subscriber_id", id, "error", err)
-		} else {
-			count++
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := h.sendMessage(tele.ChatID(id), post); err != nil {
+				logger.Error("failed to send post", "subscriber_id", id, "error", err, "post", post)
+			} else {
+				atomic.AddInt64(&count, 1)
+			}
+		}()
 	}
+	wg.Wait()
 	return count
 }
 
