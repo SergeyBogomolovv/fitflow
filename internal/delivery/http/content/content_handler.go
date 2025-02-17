@@ -5,12 +5,14 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/SergeyBogomolovv/fitflow/internal/domain"
 	"github.com/SergeyBogomolovv/fitflow/pkg/httpx"
 	"github.com/go-playground/validator/v10"
 )
 
 type ContentService interface {
 	GenerateContent(ctx context.Context, theme string) (string, error)
+	CreatePost(ctx context.Context, in domain.CreatePostDTO) (domain.Post, error)
 }
 
 type handler struct {
@@ -26,6 +28,7 @@ func New(logger *slog.Logger, contentSvc ContentService) *handler {
 
 func (h *handler) Init(r *http.ServeMux) {
 	r.HandleFunc("GET /content/generate", h.HandleGenerateContent)
+	r.HandleFunc("POST /content/post", h.HandleCreatePost)
 }
 
 // @Summary      Генерация контента для поста
@@ -53,4 +56,42 @@ func (h *handler) HandleGenerateContent(w http.ResponseWriter, r *http.Request) 
 	}
 
 	httpx.WriteJSON(w, GenerateContentResponse{Content: content, Status: httpx.StatusSuccess}, http.StatusOK)
+}
+
+// @Summary      Создание нового поста
+// @Description  Сохраняет пост в бд, сохраняет изображения в s3
+// @Tags         content
+// @Accept 			 multipart/form-data
+// @Produce      json
+// @Param images formData file true "Список изображений (можно несколько)"
+// @Param content formData string true "Текст поста"
+// @Param audience formData string true "Аудитория (beginner, intermediate, advanced)"
+// @Success      200    {object}  GenerateContentResponse
+// @Failure      400    {object}  httpx.Response  "Неверные данные в запросе"
+// @Failure      500    {object}  httpx.Response  "Внутренняя ошибка сервера"
+// @Router       /content/post [post]
+func (h *handler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		httpx.WriteError(w, "invalid payload", http.StatusBadRequest)
+		return
+	}
+
+	dto := domain.CreatePostDTO{
+		Content:  r.FormValue("content"),
+		Images:   r.MultipartForm.File["images"],
+		Audience: domain.UserLvl(r.FormValue("audience")),
+	}
+	if err := h.validate.Struct(dto); err != nil {
+		httpx.WriteError(w, "invalid payload", http.StatusBadRequest)
+		return
+	}
+
+	post, err := h.contentSvc.CreatePost(r.Context(), dto)
+	if err != nil {
+		h.logger.Error("error creating post", "error", err)
+		httpx.WriteError(w, "failed to create post", http.StatusInternalServerError)
+		return
+	}
+
+	httpx.WriteJSON(w, post, http.StatusCreated)
 }

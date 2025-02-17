@@ -57,13 +57,17 @@ func (r *postRepo) MarkAsPosted(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *postRepo) SavePost(ctx context.Context, in SavePostInput) error {
+func (r *postRepo) SavePost(ctx context.Context, in SavePostInput) (domain.Post, error) {
 	query, args := r.qb.
 		Insert("posts").
 		Columns("content", "audience", "images").
 		Values(in.Content, in.Audience, pq.Array(in.Images)).
+		Suffix("RETURNING post_id, content, audience, images").
 		MustSql()
 
-	_, err := r.db.ExecContext(ctx, query, args...)
-	return err
+	post := Post{}
+	if err := r.db.GetContext(ctx, &post, query, args...); err != nil {
+		return domain.Post{}, fmt.Errorf("failed to save post: %w", err)
+	}
+	return post.ToDomain(), nil
 }

@@ -102,6 +102,64 @@
                     }
                 }
             }
+        },
+        "/content/post": {
+            "post": {
+                "description": "Сохраняет пост в бд, сохраняет изображения в s3",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "content"
+                ],
+                "summary": "Создание нового поста",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Список изображений (можно несколько)",
+                        "name": "images",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Текст поста",
+                        "name": "content",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Аудитория (beginner, intermediate, advanced)",
+                        "name": "audience",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/content.GenerateContentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные в запросе",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {

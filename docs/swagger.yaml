@@ -108,4 +108,43 @@ paths:
       summary: Генерация контента для поста
       tags:
       - content
+  /content/post:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Сохраняет пост в бд, сохраняет изображения в s3
+      parameters:
+      - description: Список изображений (можно несколько)
+        in: formData
+        name: images
+        required: true
+        type: file
+      - description: Текст поста
+        in: formData
+        name: content
+        required: true
+        type: string
+      - description: Аудитория (beginner, intermediate, advanced)
+        in: formData
+        name: audience
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/content.GenerateContentResponse'
+        "400":
+          description: Неверные данные в запросе
+          schema:
+            $ref: '#/definitions/httpx.Response'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/httpx.Response'
+      summary: Создание нового поста
+      tags:
+      - content
 swagger: "2.0"
