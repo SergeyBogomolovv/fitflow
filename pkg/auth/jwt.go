@@ -29,3 +29,5 @@ func VerifyJWT(tokenString string, secret []byte) (string, error) {
 	}
 	return claims.Subject, nil
 }
+
+type AdminLoginKey struct{}

@@ -50,3 +50,11 @@ func (s *service) Login(ctx context.Context, login, password string) (string, er
 
 	return token, nil
 }
+
+func (s *service) AuthFunc(tokenString string) (context.Context, error) {
+	aud, err := auth.VerifyJWT(tokenString, s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+	return context.WithValue(context.Background(), auth.AdminLoginKey{}, aud), nil
+}

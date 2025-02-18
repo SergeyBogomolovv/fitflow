@@ -31,11 +31,13 @@ func New(logger *slog.Logger, contentSvc ContentService) *handler {
 	return &handler{logger, validate, contentSvc}
 }
 
-func (h *handler) Init(r *http.ServeMux) {
-	r.HandleFunc("GET /content/generate", h.HandleGenerateContent)
-	r.HandleFunc("GET /content/posts", h.HandleGetPosts)
-	r.HandleFunc("POST /content/post", h.HandleCreatePost)
-	r.HandleFunc("DELETE /content/post/{id}", h.HandleRemovePost)
+func (h *handler) Init(r *http.ServeMux, auth httpx.Middleware) {
+	router := http.NewServeMux()
+	router.HandleFunc("GET /generate", h.HandleGenerateContent)
+	router.HandleFunc("GET /posts", h.HandleGetPosts)
+	router.HandleFunc("POST /post", h.HandleCreatePost)
+	router.HandleFunc("DELETE /post/{id}", h.HandleRemovePost)
+	r.Handle("/content/", http.StripPrefix("/content", auth(router)))
 }
 
 // @Summary      Генерация контента для поста

@@ -23,6 +23,7 @@ import (
 	contentSvc "github.com/SergeyBogomolovv/fitflow/internal/service/content"
 	"github.com/SergeyBogomolovv/fitflow/pkg/ai"
 	"github.com/SergeyBogomolovv/fitflow/pkg/db"
+	"github.com/SergeyBogomolovv/fitflow/pkg/httpx"
 	"github.com/SergeyBogomolovv/fitflow/pkg/logger"
 	"github.com/SergeyBogomolovv/fitflow/pkg/uploader"
 	"github.com/joho/godotenv"
@@ -64,15 +65,19 @@ func main() {
 	contentSvc := contentSvc.New(logger, postRepo, aiGen, s3)
 	logger.Info("init services")
 
+	authMiddleware := httpx.NewAuthMiddleware(authSvc.AuthFunc)
+
 	contentHandler := contentHandler.New(logger, contentSvc)
 	authHandler := authHandler.New(logger, authSvc)
 	authHandler.Init(router)
-	contentHandler.Init(router)
+	contentHandler.Init(router, authMiddleware)
 	logger.Info("init handlers")
 
+	loggerMiddleware := httpx.NewLoggerMiddleware(logger)
+	recoverMiddleware := httpx.NewRecoverMiddleware(logger)
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", conf.HTTP.Host, conf.HTTP.Port),
-		Handler: router,
+		Handler: recoverMiddleware(loggerMiddleware(router)),
 	}
 
 	var wg sync.WaitGroup
