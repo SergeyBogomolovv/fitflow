@@ -18,7 +18,7 @@ var (
 )
 
 type CreatePostDTO struct {
-	Content  string                  `validate:"required"`
+	Content  string                  `validate:"required,max=400"`
 	Audience UserLvl                 `validate:"required,oneof=beginner intermediate advanced default"`
 	Images   []*multipart.FileHeader `validate:"required,min=1,dive,required"`
 }
